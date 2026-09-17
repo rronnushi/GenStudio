@@ -432,186 +432,10 @@
       return lerp(lerp(v00, v10, ux), lerp(v01, v11, ux), uy);
     }
 
-    // --- ENGINES ---
+// --- ENGINES ---
     const ENGINES = {
-      organicFlow: {
-        name: "Organic Flow",
-        params: {
-          density: { type: 'range', min: 1000, max: 15000, val: 8000, label: "Strand Density" },
-          scale: { type: 'range', min: 1, max: 200, val: 40, label: "Field Frequency" },
-          length: { type: 'range', min: 10, max: 300, val: 120, label: "Strand Length" },
-          thickness: { type: 'range', min: 1, max: 20, val: 3, label: "Max Stroke Weight" },
-          curve: { type: 'range', min: 1, max: 10, val: 5, label: "Curve Tightness" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.lineCap = 'round';
-          
-          const palette = colors.slice(1);
-          const noiseScale = p.scale / 10000;
-          const curveMult = p.curve * Math.PI;
-
-          for (let i = 0; i < p.density; i++) {
-            let x = random() * w, y = random() * h;
-            ctx.beginPath(); ctx.moveTo(x, y);
-            
-            const col = pick(palette);
-            const alpha = randomRange(0.2, 0.9);
-            ctx.strokeStyle = `${col}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-            
-            const baseWeight = randomRange(0.5, p.thickness);
-            const actualLength = p.length * randomRange(0.5, 1.5);
-            const path = [[x, y]];
-
-            for (let s = 0; s < actualLength; s++) {
-              let n1 = noise2D(x * noiseScale, y * noiseScale);
-              let n2 = noise2D(x * noiseScale * 2.5, y * noiseScale * 2.5) * 0.5;
-              let angle = (n1 + n2) * curveMult;
-              
-              x += Math.cos(angle) * 1.5; y += Math.sin(angle) * 1.5;
-              path.push([x, y]);
-            }
-
-            for (let j = 0; j < path.length - 1; j++) {
-              ctx.beginPath();
-              ctx.moveTo(path[j][0], path[j][1]);
-              ctx.lineTo(path[j+1][0], path[j+1][1]);
-              
-              const progress = j / path.length;
-              const taper = Math.sin(progress * Math.PI); 
-              ctx.lineWidth = baseWeight * taper;
-              ctx.stroke();
-            }
-          }
-        }
-      },
-
-      kaleidoscope: {
-        name: "Kaleidoscope",
-        params: {
-          folds: { type: 'range', min: 2, max: 32, val: 12, label: "Symmetry Folds" },
-          density: { type: 'range', min: 50, max: 2000, val: 600, label: "Fill Density" },
-          thickness: { type: 'range', min: 1, max: 40, val: 3, label: "Line Weight" },
-          style: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Geometry Style" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds;
-          const wedgeAngle = (Math.PI * 2) / folds;
-          const radius = Math.sqrt(w * w + h * h) * 1.2;
-
-          const sliceBuf = document.createElement('canvas');
-          sliceBuf.width = radius; sliceBuf.height = radius;
-          const sctx = sliceBuf.getContext('2d');
-          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius);
-          sctx.lineCap = 'round'; sctx.lineJoin = 'round';
-
-          for (let i = 0; i < p.density; i++) {
-            sctx.fillStyle = pick(colors); 
-            sctx.strokeStyle = pick(colors);
-            sctx.lineWidth = randomRange(1, p.thickness);
-            sctx.globalAlpha = randomRange(0.4, 1.0);
-            
-            const radDist = randomRange(0, radius);
-            const theta = randomRange(-0.1, wedgeAngle + 0.1); 
-            const px = Math.cos(theta) * radDist;
-            const py = Math.sin(theta) * radDist;
-            const sz = randomRange(5, p.thickness * 15);
-
-            sctx.save();
-            sctx.translate(px, py);
-            sctx.rotate(random() * Math.PI * 2);
-
-            if (p.style === 'geometric') {
-              if (random() > 0.5) sctx.fillRect(-sz/2, -sz/2, sz, sz);
-              else { sctx.beginPath(); sctx.arc(0, 0, sz/2, 0, Math.PI*2); sctx.fill(); }
-              if (random() > 0.5) sctx.strokeRect(-sz/2, -sz/2, sz*1.4, sz*1.4);
-            } 
-            else if (p.style === 'organic') {
-              sctx.beginPath();
-              sctx.moveTo(-sz, 0);
-              sctx.quadraticCurveTo(0, sz*1.5, sz, 0);
-              sctx.quadraticCurveTo(0, -sz*0.5, -sz, 0);
-              sctx.fill();
-              if (random() > 0.3) {
-                sctx.beginPath(); sctx.moveTo(0,0); sctx.lineTo(sz*2, randomRange(-sz, sz)); sctx.stroke();
-              }
-            } 
-            else if (p.style === 'orbital') {
-              sctx.beginPath();
-              sctx.arc(0, 0, sz, 0, randomRange(Math.PI/2, Math.PI*1.5));
-              sctx.stroke();
-              if(random() > 0.8) {
-                sctx.beginPath(); sctx.arc(sz, 0, sz/4, 0, Math.PI*2); sctx.fill();
-              }
-            }
-            sctx.restore();
-          }
-
-          ctx.translate(w / 2, h / 2);
-          for (let f = 0; f < folds; f++) {
-            ctx.save(); ctx.rotate(f * wedgeAngle);
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -0.01, wedgeAngle + 0.01);
-            ctx.clip();
-            if (f % 2 === 1) { ctx.scale(1, -1); ctx.rotate(-wedgeAngle); }
-            ctx.drawImage(sliceBuf, 0, 0);
-            ctx.restore();
-          }
-          ctx.translate(-w / 2, -h / 2);
-        }
-      },
-
-      topography: {
-        name: "Topography",
-        params: {
-          scale: { type: 'range', min: 10, max: 300, val: 120, label: "Noise Frequency" },
-          bands: { type: 'range', min: 2, max: 50, val: 16, label: "Elevation Bands" },
-          lineWeight: { type: 'range', min: 0, max: 20, val: 5, label: "Contour Thickness" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          const offCanvas = document.createElement('canvas');
-          offCanvas.width = w; offCanvas.height = h;
-          const oCtx = offCanvas.getContext('2d');
-          const imgData = oCtx.createImageData(w, h);
-          const data = imgData.data;
-          
-          const scale = p.scale / 20000;
-          const bandCount = p.bands;
-          const thicknessThreshold = p.lineWeight / 100;
-
-          const rgbColors = colors.map(hex => {
-            const num = parseInt(hex.slice(1), 16);
-            return [num >> 16, (num >> 8) & 255, num & 255];
-          });
-          const bgCol = rgbColors[0];
-
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              let n = noise2D(x * scale, y * scale);
-              n = (n + 1) / 2;
-              
-              const bandFloat = n * bandCount;
-              const bandIndex = Math.floor(bandFloat);
-              const fraction = bandFloat - bandIndex;
-              
-              const idx = (y * w + x) * 4;
-              
-              if (p.lineWeight > 0 && (fraction < thicknessThreshold || fraction > 1 - thicknessThreshold)) {
-                data[idx] = bgCol[0]; data[idx+1] = bgCol[1]; data[idx+2] = bgCol[2];
-              } else {
-                const cIdx = (Math.abs(bandIndex) % (rgbColors.length - 1)) + 1;
-                const col = rgbColors[cIdx];
-                data[idx] = col[0]; data[idx+1] = col[1]; data[idx+2] = col[2];
-              }
-              data[idx+3] = 255;
-            }
-          }
-          oCtx.putImageData(imgData, 0, 0);
-          ctx.drawImage(offCanvas, 0, 0);
-        }
-      },
-
       blocks: {
-        name: "Blocks",
+        name: "Brutalist BSP",
         params: {
           depth: { type: 'range', min: 2, max: 9, val: 6, label: "Partition Depth" },
           padding: { type: 'range', min: 0, max: 50, val: 10, label: "Block Padding" },
@@ -687,8 +511,178 @@
         }
       },
 
+      organicFlow: {
+        name: "Organic Flow (Feathers)",
+        params: {
+          density: { type: 'range', min: 1000, max: 15000, val: 4000, label: "Strand Density" },
+          scale: { type: 'range', min: 1, max: 200, val: 40, label: "Field Frequency" },
+          length: { type: 'range', min: 10, max: 300, val: 120, label: "Strand Length" },
+          thickness: { type: 'range', min: 1, max: 20, val: 3, label: "Stroke Weight" },
+          curve: { type: 'range', min: 1, max: 10, val: 5, label: "Curve Tightness" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          
+          const palette = colors.slice(1);
+          const noiseScale = p.scale / 10000;
+          const curveMult = p.curve * Math.PI;
+
+          for (let i = 0; i < p.density; i++) {
+            let x = random() * w, y = random() * h;
+            
+            ctx.beginPath(); 
+            ctx.moveTo(x, y);
+            
+            const col = pick(palette);
+            const alpha = randomRange(0.2, 0.9);
+            ctx.strokeStyle = `${col}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+            ctx.lineWidth = randomRange(0.5, p.thickness);
+            
+            const actualLength = p.length * randomRange(0.5, 1.5);
+
+            for (let s = 0; s < actualLength; s++) {
+              let n1 = noise2D(x * noiseScale, y * noiseScale);
+              let n2 = noise2D(x * noiseScale * 2.5, y * noiseScale * 2.5) * 0.5;
+              let angle = (n1 + n2) * curveMult;
+              
+              x += Math.cos(angle) * 1.5; 
+              y += Math.sin(angle) * 1.5;
+              ctx.lineTo(x, y);
+            }
+            // Batched stroke execution removes the massive performance penalty
+            ctx.stroke();
+          }
+        }
+      },
+
+      kaleidoscope: {
+        name: "Kaleidoscope (Maximalist)",
+        params: {
+          folds: { type: 'range', min: 2, max: 32, val: 12, label: "Symmetry Folds" },
+          density: { type: 'range', min: 50, max: 2000, val: 600, label: "Fill Density" },
+          thickness: { type: 'range', min: 1, max: 40, val: 3, label: "Line Weight" },
+          style: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Geometry Style" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds;
+          const wedgeAngle = (Math.PI * 2) / folds;
+          const radius = Math.sqrt(w * w + h * h) * 1.2;
+
+          const sliceBuf = document.createElement('canvas');
+          sliceBuf.width = radius; sliceBuf.height = radius;
+          const sctx = sliceBuf.getContext('2d');
+          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius);
+          sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+
+          for (let i = 0; i < p.density; i++) {
+            sctx.fillStyle = pick(colors); 
+            sctx.strokeStyle = pick(colors);
+            sctx.lineWidth = randomRange(1, p.thickness);
+            sctx.globalAlpha = randomRange(0.4, 1.0);
+            
+            const radDist = randomRange(0, radius);
+            const theta = randomRange(-0.1, wedgeAngle + 0.1); 
+            const px = Math.cos(theta) * radDist;
+            const py = Math.sin(theta) * radDist;
+            const sz = randomRange(5, p.thickness * 15);
+
+            sctx.save();
+            sctx.translate(px, py);
+            sctx.rotate(random() * Math.PI * 2);
+
+            if (p.style === 'geometric') {
+              if (random() > 0.5) sctx.fillRect(-sz/2, -sz/2, sz, sz);
+              else { sctx.beginPath(); sctx.arc(0, 0, sz/2, 0, Math.PI*2); sctx.fill(); }
+              if (random() > 0.5) sctx.strokeRect(-sz/2, -sz/2, sz*1.4, sz*1.4);
+            } 
+            else if (p.style === 'organic') {
+              sctx.beginPath();
+              sctx.moveTo(-sz, 0);
+              sctx.quadraticCurveTo(0, sz*1.5, sz, 0);
+              sctx.quadraticCurveTo(0, -sz*0.5, -sz, 0);
+              sctx.fill();
+              if (random() > 0.3) {
+                sctx.beginPath(); sctx.moveTo(0,0); sctx.lineTo(sz*2, randomRange(-sz, sz)); sctx.stroke();
+              }
+            } 
+            else if (p.style === 'orbital') {
+              sctx.beginPath();
+              sctx.arc(0, 0, sz, 0, randomRange(Math.PI/2, Math.PI*1.5));
+              sctx.stroke();
+              if(random() > 0.8) {
+                sctx.beginPath(); sctx.arc(sz, 0, sz/4, 0, Math.PI*2); sctx.fill();
+              }
+            }
+            sctx.restore();
+          }
+
+          ctx.translate(w / 2, h / 2);
+          for (let f = 0; f < folds; f++) {
+            ctx.save(); ctx.rotate(f * wedgeAngle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -0.01, wedgeAngle + 0.01);
+            ctx.clip();
+            if (f % 2 === 1) { ctx.scale(1, -1); ctx.rotate(-wedgeAngle); }
+            ctx.drawImage(sliceBuf, 0, 0);
+            ctx.restore();
+          }
+          ctx.translate(-w / 2, -h / 2);
+        }
+      },
+
+      topography: {
+        name: "Topography (Isolines)",
+        params: {
+          scale: { type: 'range', min: 10, max: 300, val: 120, label: "Noise Frequency" },
+          bands: { type: 'range', min: 2, max: 50, val: 16, label: "Elevation Bands" },
+          lineWeight: { type: 'range', min: 0, max: 20, val: 5, label: "Contour Thickness" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = w; offCanvas.height = h;
+          const oCtx = offCanvas.getContext('2d');
+          const imgData = oCtx.createImageData(w, h);
+          const data = imgData.data;
+          
+          const scale = p.scale / 20000;
+          const bandCount = p.bands;
+          const thicknessThreshold = p.lineWeight / 100;
+
+          const rgbColors = colors.map(hex => {
+            const num = parseInt(hex.slice(1), 16);
+            return [num >> 16, (num >> 8) & 255, num & 255];
+          });
+          const bgCol = rgbColors[0];
+
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let n = noise2D(x * scale, y * scale);
+              n = (n + 1) / 2;
+              
+              const bandFloat = n * bandCount;
+              const bandIndex = Math.floor(bandFloat);
+              const fraction = bandFloat - bandIndex;
+              
+              const idx = (y * w + x) * 4;
+              
+              if (p.lineWeight > 0 && (fraction < thicknessThreshold || fraction > 1 - thicknessThreshold)) {
+                data[idx] = bgCol[0]; data[idx+1] = bgCol[1]; data[idx+2] = bgCol[2];
+              } else {
+                const cIdx = (Math.abs(bandIndex) % (rgbColors.length - 1)) + 1;
+                const col = rgbColors[cIdx];
+                data[idx] = col[0]; data[idx+1] = col[1]; data[idx+2] = col[2];
+              }
+              data[idx+3] = 255;
+            }
+          }
+          oCtx.putImageData(imgData, 0, 0);
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      },
+
       cellular: {
-        name: "Cellular Blooms",
+        name: "Cellular Blooms (Extreme)",
         params: {
           cells: { type: 'range', min: 5, max: 150, val: 40, label: "Cell Count" },
           distortion: { type: 'range', min: 10, max: 400, val: 120, label: "Membrane Distortion" },
@@ -785,7 +779,7 @@
       },
 
       gradients: {
-        name: "Gradients",
+        name: "Abstract Gradients",
         params: {
           style: { type: 'select', options: ['linear', 'radial', 'conic'], val: 'linear', label: "Gradient Type" },
           angle: { type: 'range', min: 0, max: 360, val: 45, label: "Angle (Linear/Conic)" },
