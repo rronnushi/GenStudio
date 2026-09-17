@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RRON — Generative Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #f5f5f4;
+      --fg: #1c1917;
+      --fg-muted: #78716c;
+      --border: #d6d3d1;
+      --panel-bg: #ffffff;
+      --accent: #1c1917;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Space Grotesk', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      letter-spacing: 0.03em;
+    }
+
+    /* Sidebar Layout */
+    .sidebar {
+      width: 340px;
+      min-width: 340px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .brand {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .brand-title {
+      font-family: var(--font-sans);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .brand-sub {
+      color: var(--fg-muted);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    .controls-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    /* UI Components */
+    .section-title {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--fg-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-group { display: flex; flex-direction: column; gap: 8px; }
+    
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--fg-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .label-row span.val { color: var(--fg); font-weight: 700; }
+
+    select, button {
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 7px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    
+    select:hover, button:hover { border-color: var(--fg-muted); background: var(--bg); }
+    
+    .btn-primary { background: var(--fg); color: var(--panel-bg); font-weight: 700; }
+    .btn-primary:hover { background: #44403c; color: #fff; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+      height: 16px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%; height: 2px; background: var(--border); cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 12px; width: 12px; background: var(--accent);
+      border-radius: 50%; cursor: pointer; -webkit-appearance: none;
+      margin-top: -5px;
+    }
+
+    /* Palette UI */
+    .palette-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .swatch-wrap {
+      position: relative;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .swatch-wrap input[type="color"] {
+      position: absolute;
+      top: -10px; left: -10px;
+      width: 44px; height: 44px;
+      border: none; cursor: pointer;
+      opacity: 0;
+    }
+    .btn-add-color {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 1px dashed var(--fg-muted);
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      font-size: 14px; color: var(--fg-muted); padding: 0;
+    }
+    .btn-add-color:hover { border-color: var(--fg); color: var(--fg); }
+
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* Viewport */
+    .viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 40px;
+    }
+
+    .canvas-wrapper {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border);
+      background: var(--panel-bg);
+      display: flex;
+    }
+
+    canvas { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; }
+
+    .aspect-bar {
+      position: absolute;
+      bottom: 24px;
+      display: flex;
+      gap: 8px;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      padding: 6px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    .aspect-btn {
+      font-size: 10px;
+      padding: 6px 12px;
+      border: none;
+      background: transparent;
+      color: var(--fg-muted);
+    }
+    .aspect-btn.active { background: var(--fg); color: var(--panel-bg); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div>
+        <div class="brand-title">RRON</div>
+        <div class="brand-sub">Generative Studio</div>
+      </div>
+      <button id="btnRandomize" style="padding: 4px 8px; font-size: 9px; font-weight: 700; color: #4f46e5; border-color: #4f46e5;">🎲 SURPRISE ME</button>
+    </div>
+
+    <div class="controls-scroll">
+      
+      <!-- ENGINE SELECTOR FIRST -->
+      <div class="control-group">
+        <div class="label-row"><span>Engine Setup</span></div>
+        <select id="engineSelect"></select>
+      </div>
+
+      <!-- DYNAMIC SLIDERS DIRECTLY BELOW -->
+      <div id="dynamicControls" style="display:flex; flex-direction:column; gap:16px; margin-top: 4px; padding-left: 8px; border-left: 2px solid var(--border);"></div>
+
+      <div class="divider"></div>
+
+      <!-- Palette System -->
+      <div class="control-group">
+        <div class="section-title">
+          <span>Palette</span>
+          <div style="display:flex; gap:6px;">
+            <button id="btnRandColors" style="padding:2px 6px; font-size:9px;">Random</button>
+            <select id="presetPalette" style="padding:2px 6px; font-size:9px;">
+              <option value="feather">Feather Gold</option>
+              <option value="cyber">Cyber</option>
+              <option value="acid">Acid</option>
+              <option value="ultramarine">Ultramarine</option>
+              <option value="monochrome">Monochrome</option>
+              <option value="botanical">Botanical</option>
+              <option value="sunset">Sunset</option>
+              <option value="pastel">Pastel</option>
+              <option value="synthwave">Synthwave</option>
+              <option value="earth">Earth</option>
+              <option value="oceanic">Oceanic</option>
+            </select>
+          </div>
+        </div>
+        <div class="palette-container" id="paletteContainer">
+          <button class="btn-add-color" id="btnAddColor" title="Add color">+</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Global Composition & Post-Processing -->
+      <div class="control-group">
+        <div class="section-title">
+          <span>Global Composition</span>
+          <button id="btnResetGlobals" style="padding:2px 6px; font-size:9px;">Reset</button>
+        </div>
+        
+        <div class="label-row"><span>Scale</span><span class="val" id="valScale">100%</span></div>
+        <input type="range" id="compScale" min="10" max="300" value="100">
+
+        <div class="label-row"><span>Rotation</span><span class="val" id="valRotation">0°</span></div>
+        <input type="range" id="compRotation" min="-180" max="180" value="0">
+
+        <div class="label-row"><span>Offset X</span><span class="val" id="valOffsetX">0%</span></div>
+        <input type="range" id="compOffsetX" min="-100" max="100" value="0">
+
+        <div class="label-row"><span>Offset Y</span><span class="val" id="valOffsetY">0%</span></div>
+        <input type="range" id="compOffsetY" min="-100" max="100" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Film Grain Pass</span><span class="val" id="valGrain">15%</span></div>
+        <input type="range" id="compGrain" min="0" max="100" value="15">
+      </div>
+
+      <!-- Seed System -->
+      <div class="control-group" style="margin-top: 8px;">
+        <div class="label-row"><span>Seed Logic</span><span class="val" id="valSeed">1337</span></div>
+        <input type="range" id="paramSeed" min="1" max="9999" value="1337">
+      </div>
+
+      <div class="btn-row" style="margin-top: auto; padding-top: 10px;">
+        <button id="btnExport" class="btn-primary" style="grid-column: span 2;">Export High-Res PNG</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="viewport">
+    <div class="canvas-wrapper">
+      <canvas id="artCanvas"></canvas>
+    </div>
+
+    <div class="aspect-bar">
+      <button class="aspect-btn active" data-w="1080" data-h="1920">9:16 Story</button>
+      <button class="aspect-btn" data-w="1400" data-h="1400">1:1 Square</button>
+      <button class="aspect-btn" data-w="1600" data-h="1200">4:3 Print</button>
+      <button class="aspect-btn" data-w="1920" data-h="1080">16:9 Screen</button>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("artCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    
+    // --- PALETTES ---
+    const PALETTES = {
+      feather: ['#161514', '#3d3830', '#8b7c65', '#d4c7b2', '#ffffff'], 
+      cyber: ['#0d0221', '#ff0055', '#00f0ff', '#2d006b', '#fffa65', '#ffffff'],
+      acid: ['#0d0c1d', '#b4f000', '#5e17eb', '#e0e2db', '#9b5de5'],
+      ultramarine: ['#000000', '#0011ff', '#ffffff', '#264bff', '#8ca1ff'],
+      monochrome: ['#121212', '#f4f1ea', '#888888', '#2b2b2b', '#d3cfc7'],
+      botanical: ['#1c2826', '#4a6d58', '#8cb369', '#f4e285', '#f4a259'],
+      sunset: ['#2b1055', '#751a3d', '#b44346', '#d88653', '#f0ca68'],
+      pastel: ['#fdfdff', '#c6c5b9', '#62929e', '#546a7b', '#393d3f'],
+      synthwave: ['#241734', '#2e2157', '#fd3a69', '#fecd51', '#4bf2f6'],
+      earth: ['#3a3126', '#594a38', '#82715c', '#b3a692', '#e1d9cc'],
+      oceanic: ['#03045e', '#023e8a', '#0077b6', '#0096c7', '#48cae4', '#90e0ef']
+    };
+
+    let currentColors = [...PALETTES.feather];
+
+    // --- HSL COLOR GENERATOR ---
+    function hslToHex(h, s, l) {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    }
+
+    function generateRandomPalette() {
+      const count = Math.floor(Math.random() * 3) + 4; // 4 to 6 colors
+      const baseHue = Math.floor(Math.random() * 360);
+      const newColors = [];
+      
+      // Base background color (either very dark or very light)
+      const bgLightness = Math.random() > 0.5 ? Math.random() * 10 + 5 : Math.random() * 10 + 88;
+      newColors.push(hslToHex(baseHue, Math.random() * 20, bgLightness));
+      
+      for (let i = 1; i < count; i++) {
+        // Shift hue in steps to create cohesive relationships (analogous, triadic)
+        const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 40 - 20)) % 360;
+        const sat = Math.floor(Math.random() * 60 + 40); // 40-100%
+        const light = Math.floor(Math.random() * 50 + 30); // 30-80%
+        newColors.push(hslToHex(hueShift, sat, light));
+      }
+      return newColors;
+    }
+
+    // --- PRNG & NOISE SYSTEM ---
+    let globalSeed = 1337;
+    function random() {
+      let t = globalSeed += 0x6D2B79F5;
+      t = Math.imul(t ^ t >>> 15, t | 1);
+      t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+    function randomRange(min, max) { return min + random() * (max - min); }
+    function pick(arr) { return arr[Math.floor(random() * arr.length)]; }
+
+    // Fast 2D Value Noise
+    function hash(x, y) {
+      let h = globalSeed + x * 374761393 + y * 668265263;
+      h = Math.imul(h ^ (h >>> 13), 1274126177);
+      return (h ^ (h >>> 16)) / 4294967296;
+    }
+    function lerp(a, b, t) { return a + t * (b - a); }
+    function smoothstep(t) { return t * t * (3 - 2 * t); }
+    function noise2D(x, y) {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      const fx = x - ix, fy = y - iy;
+      const ux = smoothstep(fx), uy = smoothstep(fy);
+      const v00 = hash(ix, iy), v10 = hash(ix + 1, iy);
+      const v01 = hash(ix, iy + 1), v11 = hash(ix + 1, iy + 1);
+      return lerp(lerp(v00, v10, ux), lerp(v01, v11, ux), uy);
+    }
+
+    // --- ENGINES ---
+    const ENGINES = {
+      organicFlow: {
+        name: "Organic Flow",
+        params: {
+          density: { type: 'range', min: 1000, max: 15000, val: 8000, label: "Strand Density" },
+          scale: { type: 'range', min: 1, max: 200, val: 40, label: "Field Frequency" },
+          length: { type: 'range', min: 10, max: 300, val: 120, label: "Strand Length" },
+          thickness: { type: 'range', min: 1, max: 20, val: 3, label: "Max Stroke Weight" },
+          curve: { type: 'range', min: 1, max: 10, val: 5, label: "Curve Tightness" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineCap = 'round';
+          
+          const palette = colors.slice(1);
+          const noiseScale = p.scale / 10000;
+          const curveMult = p.curve * Math.PI;
+
+          for (let i = 0; i < p.density; i++) {
+            let x = random() * w, y = random() * h;
+            ctx.beginPath(); ctx.moveTo(x, y);
+            
+            const col = pick(palette);
+            const alpha = randomRange(0.2, 0.9);
+            ctx.strokeStyle = `${col}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+            
+            const baseWeight = randomRange(0.5, p.thickness);
+            const actualLength = p.length * randomRange(0.5, 1.5);
+            const path = [[x, y]];
+
+            for (let s = 0; s < actualLength; s++) {
+              let n1 = noise2D(x * noiseScale, y * noiseScale);
+              let n2 = noise2D(x * noiseScale * 2.5, y * noiseScale * 2.5) * 0.5;
+              let angle = (n1 + n2) * curveMult;
+              
+              x += Math.cos(angle) * 1.5; y += Math.sin(angle) * 1.5;
+              path.push([x, y]);
+            }
+
+            for (let j = 0; j < path.length - 1; j++) {
+              ctx.beginPath();
+              ctx.moveTo(path[j][0], path[j][1]);
+              ctx.lineTo(path[j+1][0], path[j+1][1]);
+              
+              const progress = j / path.length;
+              const taper = Math.sin(progress * Math.PI); 
+              ctx.lineWidth = baseWeight * taper;
+              ctx.stroke();
+            }
+          }
+        }
+      },
+
+      kaleidoscope: {
+        name: "Kaleidoscope",
+        params: {
+          folds: { type: 'range', min: 2, max: 32, val: 12, label: "Symmetry Folds" },
+          density: { type: 'range', min: 50, max: 2000, val: 600, label: "Fill Density" },
+          thickness: { type: 'range', min: 1, max: 40, val: 3, label: "Line Weight" },
+          style: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Geometry Style" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds;
+          const wedgeAngle = (Math.PI * 2) / folds;
+          const radius = Math.sqrt(w * w + h * h) * 1.2;
+
+          const sliceBuf = document.createElement('canvas');
+          sliceBuf.width = radius; sliceBuf.height = radius;
+          const sctx = sliceBuf.getContext('2d');
+          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius);
+          sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+
+          for (let i = 0; i < p.density; i++) {
+            sctx.fillStyle = pick(colors); 
+            sctx.strokeStyle = pick(colors);
+            sctx.lineWidth = randomRange(1, p.thickness);
+            sctx.globalAlpha = randomRange(0.4, 1.0);
+            
+            const radDist = randomRange(0, radius);
+            const theta = randomRange(-0.1, wedgeAngle + 0.1); 
+            const px = Math.cos(theta) * radDist;
+            const py = Math.sin(theta) * radDist;
+            const sz = randomRange(5, p.thickness * 15);
+
+            sctx.save();
+            sctx.translate(px, py);
+            sctx.rotate(random() * Math.PI * 2);
+
+            if (p.style === 'geometric') {
+              if (random() > 0.5) sctx.fillRect(-sz/2, -sz/2, sz, sz);
+              else { sctx.beginPath(); sctx.arc(0, 0, sz/2, 0, Math.PI*2); sctx.fill(); }
+              if (random() > 0.5) sctx.strokeRect(-sz/2, -sz/2, sz*1.4, sz*1.4);
+            } 
+            else if (p.style === 'organic') {
+              sctx.beginPath();
+              sctx.moveTo(-sz, 0);
+              sctx.quadraticCurveTo(0, sz*1.5, sz, 0);
+              sctx.quadraticCurveTo(0, -sz*0.5, -sz, 0);
+              sctx.fill();
+              if (random() > 0.3) {
+                sctx.beginPath(); sctx.moveTo(0,0); sctx.lineTo(sz*2, randomRange(-sz, sz)); sctx.stroke();
+              }
+            } 
+            else if (p.style === 'orbital') {
+              sctx.beginPath();
+              sctx.arc(0, 0, sz, 0, randomRange(Math.PI/2, Math.PI*1.5));
+              sctx.stroke();
+              if(random() > 0.8) {
+                sctx.beginPath(); sctx.arc(sz, 0, sz/4, 0, Math.PI*2); sctx.fill();
+              }
+            }
+            sctx.restore();
+          }
+
+          ctx.translate(w / 2, h / 2);
+          for (let f = 0; f < folds; f++) {
+            ctx.save(); ctx.rotate(f * wedgeAngle);
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -0.01, wedgeAngle + 0.01);
+            ctx.clip();
+            if (f % 2 === 1) { ctx.scale(1, -1); ctx.rotate(-wedgeAngle); }
+            ctx.drawImage(sliceBuf, 0, 0);
+            ctx.restore();
+          }
+          ctx.translate(-w / 2, -h / 2);
+        }
+      },
+
+      topography: {
+        name: "Topography",
+        params: {
+          scale: { type: 'range', min: 10, max: 300, val: 120, label: "Noise Frequency" },
+          bands: { type: 'range', min: 2, max: 50, val: 16, label: "Elevation Bands" },
+          lineWeight: { type: 'range', min: 0, max: 20, val: 5, label: "Contour Thickness" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = w; offCanvas.height = h;
+          const oCtx = offCanvas.getContext('2d');
+          const imgData = oCtx.createImageData(w, h);
+          const data = imgData.data;
+          
+          const scale = p.scale / 20000;
+          const bandCount = p.bands;
+          const thicknessThreshold = p.lineWeight / 100;
+
+          const rgbColors = colors.map(hex => {
+            const num = parseInt(hex.slice(1), 16);
+            return [num >> 16, (num >> 8) & 255, num & 255];
+          });
+          const bgCol = rgbColors[0];
+
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let n = noise2D(x * scale, y * scale);
+              n = (n + 1) / 2;
+              
+              const bandFloat = n * bandCount;
+              const bandIndex = Math.floor(bandFloat);
+              const fraction = bandFloat - bandIndex;
+              
+              const idx = (y * w + x) * 4;
+              
+              if (p.lineWeight > 0 && (fraction < thicknessThreshold || fraction > 1 - thicknessThreshold)) {
+                data[idx] = bgCol[0]; data[idx+1] = bgCol[1]; data[idx+2] = bgCol[2];
+              } else {
+                const cIdx = (Math.abs(bandIndex) % (rgbColors.length - 1)) + 1;
+                const col = rgbColors[cIdx];
+                data[idx] = col[0]; data[idx+1] = col[1]; data[idx+2] = col[2];
+              }
+              data[idx+3] = 255;
+            }
+          }
+          oCtx.putImageData(imgData, 0, 0);
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      },
+
+      blocks: {
+        name: "Blocks",
+        params: {
+          depth: { type: 'range', min: 2, max: 9, val: 6, label: "Partition Depth" },
+          padding: { type: 'range', min: 0, max: 50, val: 10, label: "Block Padding" },
+          hatchChance: { type: 'range', min: 0, max: 100, val: 30, label: "Hatching Pattern %" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const rects = [];
+
+          function splitRect(x, y, rw, rh, currentDepth) {
+            if (currentDepth === 0 || (currentDepth < p.depth && random() > 0.85)) {
+              rects.push({x, y, w: rw, h: rh});
+              return;
+            }
+            const splitRatio = randomRange(0.3, 0.7);
+            if (rw > rh) { 
+              const split = rw * splitRatio;
+              splitRect(x, y, split, rh, currentDepth - 1);
+              splitRect(x + split, y, rw - split, rh, currentDepth - 1);
+            } else { 
+              const split = rh * splitRatio;
+              splitRect(x, y, rw, split, currentDepth - 1);
+              splitRect(x, y + split, rw, rh - split, currentDepth - 1);
+            }
+          }
+          
+          splitRect(0, 0, w, h, p.depth);
+
+          rects.forEach(rect => {
+            const pad = p.padding;
+            const bx = rect.x + pad, by = rect.y + pad;
+            const bw = rect.w - pad*2, bh = rect.h - pad*2;
+            
+            if (bw <= 0 || bh <= 0) return;
+
+            const col1 = pick(colors);
+            
+            ctx.fillStyle = colors[0];
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(bx + pad/2, by + pad/2, bw, bh);
+            ctx.globalAlpha = 1.0;
+
+            if (random() * 100 < p.hatchChance) {
+              const col2 = pick(colors);
+              const stripeW = randomRange(4, 15);
+              ctx.save(); ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
+              ctx.fillStyle = col1; ctx.fillRect(bx, by, bw, bh);
+              
+              ctx.fillStyle = col2;
+              if (random() > 0.5) {
+                for(let x = bx; x < bx + bw; x += stripeW * 2) ctx.fillRect(x, by, stripeW, bh);
+              } else {
+                for(let y = by; y < by + bh; y += stripeW * 2) ctx.fillRect(bx, y, bw, stripeW);
+              }
+              ctx.restore();
+            } else {
+              ctx.fillStyle = col1;
+              ctx.fillRect(bx, by, bw, bh);
+            }
+            
+            ctx.strokeStyle = colors[0];
+            ctx.lineWidth = 2;
+            ctx.strokeRect(bx, by, bw, bh);
+
+            if (random() > 0.7) {
+              ctx.fillStyle = pick(colors);
+              const cr = Math.min(bw, bh) * randomRange(0.1, 0.4);
+              ctx.beginPath();
+              ctx.arc(bx + bw/2, by + bh/2, cr, 0, Math.PI*2);
+              ctx.fill(); ctx.stroke();
+            }
+          });
+        }
+      },
+
+      cellular: {
+        name: "Cellular Blooms",
+        params: {
+          cells: { type: 'range', min: 5, max: 150, val: 40, label: "Cell Count" },
+          distortion: { type: 'range', min: 10, max: 400, val: 120, label: "Membrane Distortion" },
+          mutation: { type: 'range', min: 1, max: 20, val: 6, label: "Mutation Exponent" },
+          layers: { type: 'range', min: 1, max: 15, val: 8, label: "Internal Layers" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineJoin = 'round';
+          
+          for(let i=0; i<p.cells; i++) {
+            const cx = random() * w, cy = random() * h;
+            const baseRad = randomRange(20, Math.min(w, h) * 0.3);
+            
+            for(let l = p.layers; l > 0; l--) {
+              const layerRatio = (l / p.layers);
+              const r = baseRad * layerRatio;
+              ctx.beginPath();
+              
+              const points = Math.max(100, Math.floor(r * 2)); 
+              for(let pt=0; pt<=points; pt++) {
+                const theta = (pt / points) * Math.PI * 2;
+                const n1 = noise2D(Math.cos(theta)*1.5 + cx*0.01, Math.sin(theta)*1.5 + cy*0.01);
+                let mutationVal = Math.pow(Math.abs(noise2D(Math.cos(theta)*p.mutation + cx, Math.sin(theta)*p.mutation + cy)), 3);
+                
+                const deformedR = r + (n1 * p.distortion * layerRatio) + (mutationVal * p.distortion * (p.mutation / 2));
+                
+                const px = cx + Math.cos(theta) * deformedR;
+                const py = cy + Math.sin(theta) * deformedR;
+                
+                if(pt === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+              }
+              
+              ctx.fillStyle = colors[l % colors.length]; ctx.globalAlpha = 0.9; ctx.fill();
+              ctx.strokeStyle = colors[(l+1) % colors.length]; ctx.lineWidth = randomRange(0.5, 2); ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = 1.0;
+        }
+      },
+
+      isometricBlocks: {
+        name: "Isometric Monoliths",
+        params: {
+          grid: { type: 'range', min: 5, max: 40, val: 18, label: "Matrix Resolution" },
+          height: { type: 'range', min: 10, max: 300, val: 120, label: "Vertical Extrusion" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineJoin = 'round';
+          
+          const tileW = Math.min(w, h) / p.grid;
+          const tileH = tileW / 2;
+          const originX = w / 2, originY = h * 0.2;
+
+          const blocks = [];
+          for (let row = 0; row < p.grid; row++) {
+            for (let col = 0; col < p.grid; col++) {
+              let n = noise2D(row * 0.15, col * 0.15);
+              blocks.push({
+                row, col, depth: row + col,
+                alt: Math.abs(n) * p.height * 5 + 10,
+                colorIdx: Math.floor(Math.abs(n) * 10) % (colors.length - 1) + 1
+              });
+            }
+          }
+          blocks.sort((a, b) => a.depth - b.depth);
+
+          blocks.forEach(b => {
+            const ix = originX + (b.col - b.row) * (tileW / 2);
+            const iy = originY + (b.col + b.row) * (tileH / 2);
+            const cBase = colors[b.colorIdx];
+            
+            const drawFace = (alpha, pathFn) => {
+              ctx.globalAlpha = alpha; ctx.fillStyle = cBase; ctx.strokeStyle = cBase;
+              ctx.lineWidth = 1; ctx.beginPath(); pathFn(); ctx.fill(); ctx.stroke(); 
+            };
+
+            drawFace(0.6, () => {
+              ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix - tileW/2, iy + tileH/2 - b.alt);
+              ctx.lineTo(ix - tileW/2, iy + tileH/2); ctx.lineTo(ix, iy);
+            });
+            drawFace(0.3, () => {
+              ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix + tileW/2, iy + tileH/2 - b.alt);
+              ctx.lineTo(ix + tileW/2, iy + tileH/2); ctx.lineTo(ix, iy);
+            });
+            drawFace(1.0, () => {
+              ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix + tileW/2, iy + tileH/2 - b.alt);
+              ctx.lineTo(ix, iy + tileH - b.alt); ctx.lineTo(ix - tileW/2, iy + tileH/2 - b.alt);
+            });
+          });
+          ctx.globalAlpha = 1.0;
+        }
+      },
+
+      gradients: {
+        name: "Gradients",
+        params: {
+          style: { type: 'select', options: ['linear', 'radial', 'conic'], val: 'linear', label: "Gradient Type" },
+          angle: { type: 'range', min: 0, max: 360, val: 45, label: "Angle (Linear/Conic)" },
+          blend: { type: 'range', min: 0, max: 100, val: 50, label: "Color Blend Stop" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          const angleRad = (p.angle * Math.PI) / 180;
+          let grad;
+          if (p.style === 'linear') {
+            const diag = Math.sqrt(w*w + h*h);
+            grad = ctx.createLinearGradient(
+              w/2 - Math.cos(angleRad)*(diag/2), h/2 - Math.sin(angleRad)*(diag/2),
+              w/2 + Math.cos(angleRad)*(diag/2), h/2 + Math.sin(angleRad)*(diag/2)
+            );
+          } else if (p.style === 'radial') {
+            grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h)/1.2);
+          } else {
+            grad = ctx.createConicGradient(angleRad, w/2, h/2);
+          }
+          colors.forEach((c, idx) => {
+            let stop = idx / (colors.length - 1);
+            if(idx > 0 && idx < colors.length - 1) stop = stop * (p.blend / 50);
+            grad.addColorStop(Math.min(1, Math.max(0, stop)), c);
+          });
+          ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+        }
+      }
+    };
+
+    // --- UI CONTROLLER ---
+    const uiEngineSelect = document.getElementById('engineSelect');
+    const uiDynamicControls = document.getElementById('dynamicControls');
+    const paletteContainer = document.getElementById("paletteContainer");
+    const btnAddColor = document.getElementById("btnAddColor");
+    const presetPalette = document.getElementById("presetPalette");
+    
+    const compScale = document.getElementById("compScale");
+    const compRotation = document.getElementById("compRotation");
+    const compOffsetX = document.getElementById("compOffsetX");
+    const compOffsetY = document.getElementById("compOffsetY");
+    const compGrain = document.getElementById("compGrain");
+
+    Object.keys(ENGINES).forEach(key => uiEngineSelect.appendChild(new Option(ENGINES[key].name, key)));
+
+    function renderPaletteUI() {
+      paletteContainer.querySelectorAll('.swatch-wrap').forEach(el => el.remove());
+      currentColors.forEach((hex, idx) => {
+        const wrap = document.createElement('div'); wrap.className = 'swatch-wrap'; wrap.style.backgroundColor = hex;
+        const input = document.createElement('input'); input.type = 'color'; input.value = hex;
+        input.addEventListener('input', (e) => { currentColors[idx] = e.target.value; wrap.style.backgroundColor = e.target.value; render(); });
+        wrap.addEventListener('dblclick', () => { if(currentColors.length > 2) { currentColors.splice(idx, 1); renderPaletteUI(); render(); }});
+        wrap.appendChild(input);
+        paletteContainer.insertBefore(wrap, btnAddColor);
+      });
+    }
+
+    function buildDynamicUI() {
+      const engine = ENGINES[uiEngineSelect.value];
+      uiDynamicControls.innerHTML = '';
+      Object.entries(engine.params).forEach(([key, conf]) => {
+        const wrap = document.createElement('div'); wrap.className = 'control-group';
+        if (conf.type === 'range') {
+          wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span><span class="val" id="val_${key}">${conf.val}</span></div>
+                            <input type="range" id="param_${key}" min="${conf.min}" max="${conf.max}" value="${conf.val}">`;
+          uiDynamicControls.appendChild(wrap);
+          document.getElementById(`param_${key}`).addEventListener('input', (e) => {
+            document.getElementById(`val_${key}`).innerText = e.target.value;
+            engine.params[key].val = parseFloat(e.target.value); render();
+          });
+        } else if (conf.type === 'select') {
+          let opts = conf.options.map(opt => `<option value="${opt}" ${conf.val === opt ? 'selected' : ''}>${opt.toUpperCase()}</option>`).join('');
+          wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span></div><select id="param_${key}">${opts}</select>`;
+          uiDynamicControls.appendChild(wrap);
+          document.getElementById(`param_${key}`).addEventListener('change', (e) => { engine.params[key].val = e.target.value; render(); });
+        }
+      });
+    }
+
+    // --- POST PROCESSING ---
+    function applyGrainPass(amount) {
+      if(amount <= 0) return;
+      const w = canvas.width, h = canvas.height;
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+      const noiseMult = amount * 1.5; 
+      for(let i=0; i<d.length; i+=4) {
+        const noise = (Math.random() - 0.5) * noiseMult;
+        d[i] = Math.min(255, Math.max(0, d[i] + noise));
+        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise));
+        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise));
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // --- RENDER PIPELINE ---
+    function render() {
+      globalSeed = parseInt(document.getElementById('paramSeed').value); 
+      const engine = ENGINES[uiEngineSelect.value];
+      const p = {}; Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
+      const w = canvas.width, h = canvas.height;
+
+      ctx.fillStyle = currentColors[0]; ctx.fillRect(0, 0, w, h);
+
+      const scale = parseFloat(compScale.value) / 100;
+      const rotationRad = (parseFloat(compRotation.value) * Math.PI) / 180;
+      const ox = (parseFloat(compOffsetX.value) / 100) * w;
+      const oy = (parseFloat(compOffsetY.value) / 100) * h;
+
+      ctx.save();
+      ctx.translate(w/2 + ox, h/2 + oy); 
+      ctx.rotate(rotationRad);
+      ctx.scale(scale, scale); 
+      ctx.translate(-w/2, -h/2);
+      
+      engine.render(ctx, w, h, p, currentColors);
+      
+      ctx.restore();
+      applyGrainPass(parseFloat(compGrain.value));
+    }
+
+    // --- LISTENERS ---
+    uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); render(); });
+    btnAddColor.addEventListener('click', () => { currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')); renderPaletteUI(); render(); });
+    presetPalette.addEventListener('change', (e) => { if (PALETTES[e.target.value]) { currentColors = [...PALETTES[e.target.value]]; renderPaletteUI(); render(); }});
+    document.getElementById('btnRandColors').addEventListener('click', () => {
+      currentColors = generateRandomPalette();
+      renderPaletteUI(); render();
+    });
+    
+    // Globals
+    function updateGlobalUI() {
+      document.getElementById('valScale').innerText = compScale.value + '%';
+      document.getElementById('valRotation').innerText = compRotation.value + '°';
+      document.getElementById('valOffsetX').innerText = compOffsetX.value + '%';
+      document.getElementById('valOffsetY').innerText = compOffsetY.value + '%';
+      document.getElementById('valGrain').innerText = compGrain.value + '%';
+    }
+    
+    compScale.addEventListener('input', () => { updateGlobalUI(); render(); });
+    compRotation.addEventListener('input', () => { updateGlobalUI(); render(); });
+    compOffsetX.addEventListener('input', () => { updateGlobalUI(); render(); });
+    compOffsetY.addEventListener('input', () => { updateGlobalUI(); render(); });
+    compGrain.addEventListener('input', () => { updateGlobalUI(); render(); });
+    
+    document.getElementById('btnResetGlobals').addEventListener('click', () => {
+      compScale.value = 100; compRotation.value = 0; compOffsetX.value = 0; compOffsetY.value = 0; compGrain.value = 15;
+      updateGlobalUI(); render();
+    });
+
+    document.getElementById('paramSeed').addEventListener('input', e => { document.getElementById('valSeed').innerText = e.target.value; render(); });
+    
+    document.getElementById('btnRandomize').addEventListener('click', () => {
+      // Pick random engine & palette
+      const engines = Object.keys(ENGINES);
+      uiEngineSelect.value = engines[Math.floor(Math.random() * engines.length)];
+      
+      if (Math.random() > 0.5) {
+        const palettes = Object.keys(PALETTES);
+        presetPalette.value = palettes[Math.floor(Math.random() * palettes.length)];
+        currentColors = [...PALETTES[presetPalette.value]];
+      } else {
+        currentColors = generateRandomPalette();
+        presetPalette.value = ""; 
+      }
+      renderPaletteUI();
+
+      // Randomize engine params enforcing strict integers
+      const engine = ENGINES[uiEngineSelect.value];
+      Object.entries(engine.params).forEach(([key, conf]) => {
+        if(conf.type === 'range') {
+          conf.val = Math.floor(conf.min + Math.random() * (conf.max - conf.min + 1));
+        } else if(conf.type === 'select') {
+          conf.val = conf.options[Math.floor(Math.random() * conf.options.length)];
+        }
+      });
+      buildDynamicUI();
+
+      // Randomize seed
+      const newSeed = Math.floor(Math.random() * 9999);
+      document.getElementById('paramSeed').value = newSeed; 
+      document.getElementById('valSeed').innerText = newSeed; 
+      
+      render();
+    });
+
+    document.getElementById('btnExport').addEventListener('click', () => {
+      const link = document.createElement("a"); link.download = `RRON_GenStudio_${Date.now()}.png`; link.href = canvas.toDataURL("image/png"); link.click();
+    });
+    
+    document.querySelectorAll(".aspect-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".aspect-btn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        canvas.width = parseInt(e.target.dataset.w); canvas.height = parseInt(e.target.dataset.h); render();
+      });
+    });
+
+    // --- INIT ---
+    canvas.width = 1080; canvas.height = 1920;
+    renderPaletteUI(); buildDynamicUI(); render();
+  </script>
+</body>
+</html>
