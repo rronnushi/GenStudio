@@ -214,6 +214,42 @@
       color: var(--fg-muted);
     }
     .aspect-btn.active { background: var(--fg); color: var(--panel-bg); border-radius: 4px; }
+    @media (max-width: 800px) {
+      body {
+        flex-direction: column;
+        height: 100dvh; /* Prevents Firefox nav bar from clipping the bottom */
+      }
+      
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: 55dvh;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        order: 2; /* Drops the control panel below the art */
+      }
+      
+      .viewport {
+        height: 45dvh;
+        padding: 20px 10px 60px;
+        order: 1; /* Pins the canvas to the top */
+      }
+      
+      canvas {
+        max-height: calc(45dvh - 80px);
+      }
+      
+      .aspect-bar {
+        bottom: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 90%;
+      }
+      
+      .brand {
+        padding: 12px 20px;
+      }
+    }
   </style>
 </head>
 <body>
