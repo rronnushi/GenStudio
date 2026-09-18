@@ -431,8 +431,627 @@
       const v01 = hash(ix, iy + 1), v11 = hash(ix + 1, iy + 1);
       return lerp(lerp(v00, v10, ux), lerp(v01, v11, ux), uy);
     }
+class BackgroundGenerator {
+  constructor(ctx) {
+    this.ctx = ctx;
+  }
 
+  /**
+   * Main routing method for background generation.
+   * @param {string} type - Background style (e.g., 'gradients', 'hex-cubes', 'waves')
+   * @param {number} w - Canvas width
+   * @param {number} h - Canvas height
+   * @param {Array} palette - Array of hex color strings
+   * @param {Object} options - density, scale, and variant specific options
+   */
+  generateBackground(type, w, h, palette, options = {}) {
+    this.ctx.save();
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+
+    switch (type) {
+      case 'gradients':
+        this._drawGradients(w, h, palette, options);
+        break;
+      case '4-corners':
+        this._draw4Corners(w, h, palette);
+        break;
+      case 'checkerboard':
+        this._drawCheckerboard(w, h, palette, options);
+        break;
+      case 'lines':
+        this._drawLines(w, h, palette, options);
+        break;
+      case 'hex-cubes':
+        this._drawHexCubes(w, h, palette, options);
+        break;
+      case 'isometric':
+        this._drawIsometric(w, h, palette, options);
+        break;
+      case 'gems':
+        this._drawGems(w, h, palette, options);
+        break;
+      case 'rosace':
+        this._drawRosace(w, h, palette, options);
+        break;
+      case 'waves':
+        this._drawWaves(w, h, palette, options);
+        break;
+      case 'circuit':
+        this._drawCircuitBoard(w, h, palette, options);
+        break;
+      case 'skyline':
+        this._drawCitySkyline(w, h, palette, options);
+        break;
+      default:
+        this.ctx.fillStyle = palette[0] || '#000';
+        this.ctx.fillRect(0, 0, w, h);
+    }
+    this.ctx.restore();
+  }
+
+  // --- 1. Gradients ---
+
+  _drawGradients(w, h, palette, options) {
+    const dir = options.variant || 'random';
+    let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+
+    if (dir === 'horizontal') {
+      x2 = w;
+    } else if (dir === 'vertical') {
+      y2 = h;
+    } else {
+      // Random angle
+      const angle = Math.random() * Math.PI * 2;
+      const cx = w / 2, cy = h / 2;
+      const diag = Math.hypot(w, h) / 2;
+      x1 = cx - Math.cos(angle) * diag;
+      y1 = cy - Math.sin(angle) * diag;
+      x2 = cx + Math.cos(angle) * diag;
+      y2 = cy + Math.sin(angle) * diag;
+    }
+
+    const grad = this.ctx.createLinearGradient(x1, y1, x2, y2);
+    palette.forEach((color, i) => {
+      grad.addColorStop(i / (palette.length - 1), color);
+    });
+
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(0, 0, w, h);
+  }
+
+  _draw4Corners(w, h, palette) {
+    const c1 = palette[0 % palette.length];
+    const c2 = palette[1 % palette.length];
+    const c3 = palette[2 % palette.length];
+    const c4 = palette[3 % palette.length];
+
+    // Base color (Top Left)
+    this.ctx.fillStyle = c1;
+    this.ctx.fillRect(0, 0, w, h);
+
+    const radius = Math.hypot(w, h) * 0.8;
+
+    const corners = [
+      { x: w, y: 0, color: c2 },   // Top Right
+      { x: w, y: h, color: c3 },   // Bottom Right
+      { x: 0, y: h, color: c4 }    // Bottom Left
+    ];
+
+    corners.forEach(corner => {
+      const grad = this.ctx.createRadialGradient(corner.x, corner.y, 0, corner.x, corner.y, radius);
+      grad.addColorStop(0, corner.color);
+      grad.addColorStop(1, `${corner.color}00`); // Transparent
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(0, 0, w, h);
+    });
+  }
+
+  // --- 2. Grid & Linear Patterns ---
+
+  _drawCheckerboard(w, h, palette, options) {
+    const scale = options.scale || 40;
+    const rotate = options.rotation || (Math.PI / 12); // Default slight artsy distortion
+    const diag = Math.hypot(w, h);
+
+    this.ctx.fillStyle = palette[0];
+    this.ctx.fillRect(0, 0, w, h);
+    this.ctx.fillStyle = palette[1 % palette.length];
+
+    this.ctx.translate(w / 2, h / 2);
+    this.ctx.rotate(rotate);
+    this.ctx.translate(-diag / 2, -diag / 2);
+
+    for (let y = 0; y < diag; y += scale) {
+      for (let x = 0; x < diag; x += scale) {
+        if ((x / scale + y / scale) % 2 === 0) {
+          this.ctx.fillRect(x, y, scale, scale);
+        }
+      }
+    }
+  }
+
+  _drawLines(w, h, palette, options) {
+    const density = options.density || 50;
+    const angle = options.rotation || (Math.PI / 4);
+    const diag = Math.hypot(w, h) * 1.5;
+
+    this.ctx.fillStyle = palette[0];
+    this.ctx.fillRect(0, 0, w, h);
+
+    this.ctx.translate(w / 2, h / 2);
+    this.ctx.rotate(angle);
+    this.ctx.translate(-diag / 2, -diag / 2);
+
+    let currentX = 0;
+    while (currentX < diag) {
+      const strokeW = Math.random() * (options.scale || 10) + 1;
+      const gap = Math.random() * (100 / density) + 2;
+      
+      this.ctx.beginPath();
+      this.ctx.moveTo(currentX, 0);
+      this.ctx.lineTo(currentX, diag);
+      
+      this.ctx.lineWidth = strokeW;
+      this.ctx.strokeStyle = palette[Math.floor(Math.random() * palette.length)];
+      this.ctx.stroke();
+      
+      currentX += strokeW + gap;
+    }
+  }
+
+  // --- 3. Isometric & Geometric ---
+
+  _drawHexCubes(w, h, palette, options) {
+    const r = options.scale || 30;
+    const hexW = Math.sqrt(3) * r;
+    const hexH = 2 * r;
+    
+    // 3 distinct tones for the 3D cube illusion
+    const topCol = palette[0];
+    const leftCol = palette[1 % palette.length];
+    const rightCol = palette[2 % palette.length];
+
+    this.ctx.fillStyle = '#000';
+    this.ctx.fillRect(0, 0, w, h);
+
+    for (let y = -hexH; y < h + hexH; y += hexH * 0.75) {
+      for (let x = -hexW; x < w + hexW; x += hexW) {
+        let cx = x;
+        // Offset alternate rows
+        if (Math.round(y / (hexH * 0.75)) % 2 !== 0) cx += hexW / 2;
+
+        // Top Face (Rhombus)
+        this.ctx.fillStyle = topCol;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, y);
+        this.ctx.lineTo(cx + hexW / 2, y - r / 2);
+        this.ctx.lineTo(cx, y - r);
+        this.ctx.lineTo(cx - hexW / 2, y - r / 2);
+        this.ctx.fill();
+
+        // Left Face
+        this.ctx.fillStyle = leftCol;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, y);
+        this.ctx.lineTo(cx - hexW / 2, y - r / 2);
+        this.ctx.lineTo(cx - hexW / 2, y + r / 2);
+        this.ctx.lineTo(cx, y + r);
+        this.ctx.fill();
+
+        // Right Face
+        this.ctx.fillStyle = rightCol;
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, y);
+        this.ctx.lineTo(cx + hexW / 2, y - r / 2);
+        this.ctx.lineTo(cx + hexW / 2, y + r / 2);
+        this.ctx.lineTo(cx, y + r);
+        this.ctx.fill();
+        
+        // Anti-aliasing stroke
+        this.ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+      }
+    }
+  }
+
+  _drawIsometric(w, h, palette, options) {
+    this.ctx.fillStyle = palette[0];
+    this.ctx.fillRect(0, 0, w, h);
+
+    const size = options.scale || 40;
+    const gridRows = Math.floor(h / size) * 2;
+    const gridCols = Math.floor(w / size) * 2;
+
+    const originX = w / 2;
+    const originY = h * 0.1;
+
+    // Sort to draw back-to-front
+    const cells = [];
+    for (let y = 0; y < gridRows; y++) {
+      for (let x = 0; x < gridCols; x++) {
+        cells.push({ x, y, depth: x + y });
+      }
+    }
+    cells.sort((a, b) => a.depth - b.depth);
+
+    cells.forEach(cell => {
+      // 30 degree Cartesian to Isometric projection
+      const screenX = originX + (cell.x - cell.y) * Math.cos(Math.PI / 6) * size;
+      const screenY = originY + (cell.x + cell.y) * Math.sin(Math.PI / 6) * size;
+
+      if (screenX < -size*2 || screenX > w + size*2 || screenY > h + size*2) return;
+
+      const baseColor = palette[(cell.x + cell.y) % (palette.length - 1) + 1];
+      const isPyramid = Math.random() > 0.8;
+      const heightOffset = Math.random() * size * 1.5;
+
+      if (isPyramid) {
+        // Left pyramid face
+        this.ctx.fillStyle = baseColor;
+        this.ctx.globalAlpha = 0.7;
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY);
+        this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5);
+        this.ctx.lineTo(screenX, screenY - heightOffset);
+        this.ctx.fill();
+
+        // Right pyramid face
+        this.ctx.fillStyle = baseColor;
+        this.ctx.globalAlpha = 0.4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY);
+        this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5);
+        this.ctx.lineTo(screenX, screenY - heightOffset);
+        this.ctx.fill();
+        this.ctx.globalAlpha = 1.0;
+      } else {
+        // Cube
+        const z = heightOffset;
+        
+        // Left Face
+        this.ctx.fillStyle = baseColor;
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY - z);
+        this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5 - z);
+        this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5);
+        this.ctx.lineTo(screenX, screenY);
+        this.ctx.fill();
+
+        // Right Face
+        this.ctx.globalAlpha = 0.4;
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY - z);
+        this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5 - z);
+        this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5);
+        this.ctx.lineTo(screenX, screenY);
+        this.ctx.fill();
+
+        // Top Face
+        this.ctx.globalAlpha = 1.0;
+        this.ctx.beginPath();
+        this.ctx.moveTo(screenX, screenY - z);
+        this.ctx.lineTo(screenX + size * 0.866, screenY - size * 0.5 - z);
+        this.ctx.lineTo(screenX, screenY - size - z);
+        this.ctx.lineTo(screenX - size * 0.866, screenY - size * 0.5 - z);
+        this.ctx.fill();
+        
+        this.ctx.strokeStyle = palette[0];
+        this.ctx.lineWidth = 0.5;
+        this.ctx.stroke();
+      }
+    });
+  }
+
+  _drawGems(w, h, palette, options) {
+    const spacing = options.scale || 80;
+    const cols = Math.ceil(w / spacing) + 2;
+    const rows = Math.ceil(h / spacing) + 2;
+    const points = [];
+
+    // Generate perturbed grid
+    for (let y = -1; y <= rows; y++) {
+      const row = [];
+      for (let x = -1; x <= cols; x++) {
+        row.push({
+          x: x * spacing + (Math.random() - 0.5) * spacing * 0.8,
+          y: y * spacing + (Math.random() - 0.5) * spacing * 0.8
+        });
+      }
+      points.push(row);
+    }
+
+    // Triangulate and draw
+    for (let y = 0; y < points.length - 1; y++) {
+      for (let x = 0; x < points[y].length - 1; x++) {
+        const p1 = points[y][x];
+        const p2 = points[y][x+1];
+        const p3 = points[y+1][x];
+        const p4 = points[y+1][x+1];
+
+        const drawTri = (a, b, c) => {
+          this.ctx.beginPath();
+          this.ctx.moveTo(a.x, a.y);
+          this.ctx.lineTo(b.x, b.y);
+          this.ctx.lineTo(c.x, c.y);
+          this.ctx.closePath();
+
+          // Gradient shading to look like a facet
+          const grad = this.ctx.createLinearGradient(a.x, a.y, c.x, c.y);
+          grad.addColorStop(0, palette[Math.floor(Math.random() * palette.length)]);
+          grad.addColorStop(1, palette[Math.floor(Math.random() * palette.length)]);
+          
+          this.ctx.fillStyle = grad;
+          this.ctx.fill();
+          this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+          this.ctx.stroke();
+        };
+
+        // Alternate triangulation direction for better mesh look
+        if ((x + y) % 2 === 0) {
+          drawTri(p1, p2, p3);
+          drawTri(p2, p4, p3);
+        } else {
+          drawTri(p1, p2, p4);
+          drawTri(p1, p4, p3);
+        }
+      }
+    }
+  }
+
+  // --- 4. Organic & Abstract ---
+
+  _drawRosace(w, h, palette, options) {
+    this.ctx.fillStyle = palette[0];
+    this.ctx.fillRect(0, 0, w, h);
+
+    const cx = w / 2;
+    const cy = h / 2;
+    const maxR = Math.max(w, h) * 0.6;
+    const layers = options.density || 8;
+    
+    this.ctx.globalCompositeOperation = 'screen';
+    
+    for (let l = layers; l > 0; l--) {
+      const radius = (l / layers) * maxR;
+      const petals = Math.floor(Math.random() * 8) + 6; // 6 to 13 petals
+      const color = palette[l % palette.length];
+      
+      this.ctx.fillStyle = color;
+      this.ctx.globalAlpha = 0.4;
+      
+      for (let i = 0; i < petals; i++) {
+        const angle = (i / petals) * Math.PI * 2;
+        const px = cx + Math.cos(angle) * (radius * 0.5);
+        const py = cy + Math.sin(angle) * (radius * 0.5);
+        
+        this.ctx.beginPath();
+        this.ctx.arc(px, py, radius * 0.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.strokeStyle = palette[(l+1) % palette.length];
+        this.ctx.lineWidth = 2;
+        this.ctx.globalAlpha = 0.8;
+        this.ctx.stroke();
+      }
+    }
+    this.ctx.globalCompositeOperation = 'source-over';
+    this.ctx.globalAlpha = 1.0;
+  }
+
+  _drawWaves(w, h, palette, options) {
+    this.ctx.fillStyle = palette[0];
+    this.ctx.fillRect(0, 0, w, h);
+
+    const layers = options.density || 6;
+    const baseFreq = options.scale ? (1 / options.scale) : 0.005;
+
+    for (let i = 0; i < layers; i++) {
+      const color = palette[(i + 1) % palette.length];
+      this.ctx.fillStyle = color;
+      this.ctx.globalAlpha = 0.85;
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, h);
+
+      const amplitude = Math.random() * 60 + 40;
+      const freq = baseFreq * (Math.random() + 0.5);
+      const phase = Math.random() * Math.PI * 2;
+      const baseY = (h / layers) * i + amplitude;
+
+      for (let x = 0; x <= w; x += 10) {
+        // Combine sine and cosine for a more organic, less uniform wave
+        const y = baseY 
+          + Math.sin(x * freq + phase) * amplitude 
+          + Math.cos(x * freq * 1.5 + phase) * (amplitude * 0.3);
+        
+        if (x === 0) this.ctx.lineTo(x, y);
+        else this.ctx.lineTo(x, y);
+      }
+
+      this.ctx.lineTo(w, h);
+      this.ctx.closePath();
+      this.ctx.fill();
+
+      // Sharp highlight line on the crest
+      this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      this.ctx.lineWidth = 2;
+      this.ctx.stroke();
+    }
+    this.ctx.globalAlpha = 1.0;
+  }
+
+  // --- 5. Technical & Structural ---
+
+  _drawCircuitBoard(w, h, palette, options) {
+    this.ctx.fillStyle = '#0a0a0a'; // Dark tech background
+    this.ctx.fillRect(0, 0, w, h);
+
+    const paths = options.density || 40;
+    const stepSize = options.scale || 25;
+    
+    // Setup neon glow
+    this.ctx.shadowBlur = 10;
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+
+    for (let i = 0; i < paths; i++) {
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      this.ctx.strokeStyle = color;
+      this.ctx.fillStyle = color;
+      this.ctx.shadowColor = color;
+      this.ctx.lineWidth = Math.random() * 3 + 1;
+
+      let cx = Math.floor((Math.random() * w) / stepSize) * stepSize;
+      let cy = Math.floor((Math.random() * h) / stepSize) * stepSize;
+
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy, this.ctx.lineWidth * 2, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx, cy);
+
+      const segments = Math.floor(Math.random() * 10) + 5;
+      let angle = Math.floor(Math.random() * 8) * (Math.PI / 4); // 0, 45, 90, 135...
+
+      for (let s = 0; s < segments; s++) {
+        // Move forward
+        const distance = (Math.floor(Math.random() * 5) + 1) * stepSize;
+        cx += Math.cos(angle) * distance;
+        cy += Math.sin(angle) * distance;
+        this.ctx.lineTo(cx, cy);
+
+        // Turn 45 or 90 degrees
+        const turn = (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.5 ? Math.PI/4 : Math.PI/2);
+        angle += turn;
+      }
+
+      this.ctx.stroke();
+
+      // End node
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy, this.ctx.lineWidth * 2.5, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    
+    // Reset shadow
+    this.ctx.shadowBlur = 0;
+  }
+
+  _drawCitySkyline(w, h, palette, options) {
+    // Gradient sky
+    const skyGrad = this.ctx.createLinearGradient(0, 0, 0, h);
+    skyGrad.addColorStop(0, palette[0]);
+    skyGrad.addColorStop(1, palette[1 % palette.length]);
+    this.ctx.fillStyle = skyGrad;
+    this.ctx.fillRect(0, 0, w, h);
+
+    const layers = options.density || 4;
+    const bldgWidth = options.scale || 40;
+
+    for (let l = layers; l > 0; l--) {
+      // Parallax logic: back layers are lighter, front layers are darker
+      const layerRatio = l / layers;
+      const bldgColor = palette[Math.floor((layers - l) % palette.length)];
+      
+      this.ctx.fillStyle = bldgColor;
+      this.ctx.globalAlpha = 0.6 + (1 - layerRatio) * 0.4;
+
+      let x = 0;
+      while (x < w) {
+        const width = bldgWidth * (Math.random() * 1.5 + 0.5) * layerRatio;
+        const height = (h * 0.8) * Math.random() * layerRatio + (h * 0.1);
+        const y = h - height;
+
+        this.ctx.fillRect(x, y, width, height);
+
+        // Windows
+        if (Math.random() > 0.3) {
+          this.ctx.fillStyle = palette[palette.length - 1]; // Use last color for glowing windows
+          const winSize = width * 0.15;
+          const cols = Math.floor(width / (winSize * 1.5));
+          const rows = Math.floor(height / (winSize * 2));
+
+          for (let wr = 1; wr < rows; wr++) {
+            for (let wc = 1; wc <= cols; wc++) {
+              if (Math.random() > 0.6) {
+                const wx = x + wc * (winSize * 1.5) - winSize;
+                const wy = y + wr * (winSize * 2);
+                this.ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+                this.ctx.fillRect(wx, wy, winSize, winSize * 1.5);
+              }
+            }
+          }
+          this.ctx.fillStyle = bldgColor; // Reset for next building
+          this.ctx.globalAlpha = 0.6 + (1 - layerRatio) * 0.4;
+        }
+
+        x += width;
+      }
+    }
+    this.ctx.globalAlpha = 1.0;
+  }
+}
 // --- ENGINES ---
+    const ENGINES = {
+      // ... your existing engines (Organic Flow, Kaleidoscope, etc.) ...
+
+      bgCircuit: {
+        name: "BG: Circuit Board",
+        params: {
+          density: { type: 'range', min: 10, max: 100, val: 40, label: "Path Count" },
+          scale: { type: 'range', min: 10, max: 100, val: 25, label: "Grid Step Size" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          bgGen.generateBackground('circuit', w, h, colors, p);
+        }
+      },
+
+      bgSkyline: {
+        name: "BG: City Skyline",
+        params: {
+          density: { type: 'range', min: 2, max: 10, val: 4, label: "Parallax Layers" },
+          scale: { type: 'range', min: 10, max: 100, val: 40, label: "Building Width" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          bgGen.generateBackground('skyline', w, h, colors, p);
+        }
+      },
+
+      bgWaves: {
+        name: "BG: Layered Waves",
+        params: {
+          density: { type: 'range', min: 2, max: 20, val: 6, label: "Wave Layers" },
+          scale: { type: 'range', min: 10, max: 500, val: 200, label: "Wave Frequency" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          bgGen.generateBackground('waves', w, h, colors, p);
+        }
+      },
+
+      bgIsometric: {
+        name: "BG: Iso-City",
+        params: {
+          scale: { type: 'range', min: 10, max: 100, val: 40, label: "Block Size" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          bgGen.generateBackground('isometric', w, h, colors, p);
+        }
+      },
+
+      bgGems: {
+        name: "BG: Crystal Gems",
+        params: {
+          scale: { type: 'range', min: 20, max: 200, val: 80, label: "Facet Size" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          bgGen.generateBackground('gems', w, h, colors, p);
+        }
+      }
+    };
     const ENGINES = {
       blocks: {
         name: "Brutalist BSP",
