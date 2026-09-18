@@ -250,6 +250,7 @@
             <button id="btnRandColors" style="padding:2px 6px; font-size:9px;">Random</button>
             <select id="presetPalette" style="padding:2px 6px; font-size:9px;">
               <option value="amsterdam">Amsterdam</option>
+              <option value="pastel">Pastel Geometrics</option>
               <option value="feather">Feather Gold</option>
               <option value="cyber">Cyber</option>
               <option value="acid">Acid</option>
@@ -257,9 +258,7 @@
               <option value="monochrome">Monochrome</option>
               <option value="botanical">Botanical</option>
               <option value="sunset">Sunset</option>
-              <option value="pastel">Pastel</option>
               <option value="synthwave">Synthwave</option>
-              <option value="earth">Earth</option>
               <option value="oceanic">Oceanic</option>
             </select>
           </div>
@@ -278,16 +277,16 @@
         </div>
         
         <div class="label-row"><span>Scale</span><span class="val" id="valScale">100%</span></div>
-        <input type="range" id="compScale" min="10" max="300" value="100">
+        <input type="range" id="compScale" min="10" max="500" value="100">
 
         <div class="label-row"><span>Rotation</span><span class="val" id="valRotation">0°</span></div>
         <input type="range" id="compRotation" min="-180" max="180" value="0">
 
         <div class="label-row"><span>Offset X</span><span class="val" id="valOffsetX">0%</span></div>
-        <input type="range" id="compOffsetX" min="-100" max="100" value="0">
+        <input type="range" id="compOffsetX" min="-200" max="200" value="0">
 
         <div class="label-row"><span>Offset Y</span><span class="val" id="valOffsetY">0%</span></div>
-        <input type="range" id="compOffsetY" min="-100" max="100" value="0">
+        <input type="range" id="compOffsetY" min="-200" max="200" value="0">
 
         <div class="label-row" style="margin-top: 6px;"><span>Film Grain Pass</span><span class="val" id="valGrain">15%</span></div>
         <input type="range" id="compGrain" min="0" max="100" value="15">
@@ -295,7 +294,7 @@
 
       <div class="control-group" style="margin-top: 8px;">
         <div class="label-row"><span>Seed Logic</span><span class="val" id="valSeed">1337</span></div>
-        <input type="range" id="paramSeed" min="1" max="9999" value="1337">
+        <input type="range" id="paramSeed" min="1" max="99999" value="1337">
       </div>
 
       <div class="btn-row" style="margin-top: auto; padding-top: 10px;">
@@ -323,6 +322,7 @@
     
     const PALETTES = {
       amsterdam: ['#1e293b', '#dc2626', '#f87171', '#fef08a', '#e2e8f0'],
+      pastel: ['#dce4eb', '#e6a49c', '#8ab89f', '#f2d174', '#798bca', '#c98165'],
       feather: ['#161514', '#3d3830', '#8b7c65', '#d4c7b2', '#ffffff'], 
       cyber: ['#0d0221', '#ff0055', '#00f0ff', '#2d006b', '#fffa65', '#ffffff'],
       acid: ['#0d0c1d', '#b4f000', '#5e17eb', '#e0e2db', '#9b5de5'],
@@ -330,7 +330,6 @@
       monochrome: ['#121212', '#f4f1ea', '#888888', '#2b2b2b', '#d3cfc7'],
       botanical: ['#1c2826', '#4a6d58', '#8cb369', '#f4e285', '#f4a259'],
       sunset: ['#2b1055', '#751a3d', '#b44346', '#d88653', '#f0ca68'],
-      pastel: ['#fdfdff', '#c6c5b9', '#62929e', '#546a7b', '#393d3f'],
       synthwave: ['#241734', '#2e2157', '#fd3a69', '#fecd51', '#4bf2f6'],
       earth: ['#3a3126', '#594a38', '#82715c', '#b3a692', '#e1d9cc'],
       oceanic: ['#03045e', '#023e8a', '#0077b6', '#0096c7', '#48cae4', '#90e0ef']
@@ -339,28 +338,20 @@
     let currentColors = [...PALETTES.amsterdam];
 
     function hslToHex(h, s, l) {
-      l /= 100;
-      const a = s * Math.min(l, 1 - l) / 100;
-      const f = n => {
-        const k = (n + h / 30) % 12;
-        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-        return Math.round(255 * color).toString(16).padStart(2, '0');
-      };
+      l /= 100; const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => { const k = (n + h / 30) % 12; const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * color).toString(16).padStart(2, '0'); };
       return `#${f(0)}${f(8)}${f(4)}`;
     }
 
     function generateRandomPalette() {
-      const count = Math.floor(Math.random() * 3) + 4; 
+      const count = Math.floor(Math.random() * 5) + 4; 
       const baseHue = Math.floor(Math.random() * 360);
       const newColors = [];
       const bgLightness = Math.random() > 0.5 ? Math.random() * 10 + 5 : Math.random() * 10 + 88;
       newColors.push(hslToHex(baseHue, Math.random() * 20, bgLightness));
-      
       for (let i = 1; i < count; i++) {
-        const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 40 - 20)) % 360;
-        const sat = Math.floor(Math.random() * 60 + 40); 
-        const light = Math.floor(Math.random() * 50 + 30); 
-        newColors.push(hslToHex(hueShift, sat, light));
+        const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 60 - 30)) % 360;
+        newColors.push(hslToHex(hueShift, Math.floor(Math.random() * 80 + 20), Math.floor(Math.random() * 70 + 15)));
       }
       return newColors;
     }
@@ -386,382 +377,41 @@
       const ix = Math.floor(x), iy = Math.floor(y);
       const fx = x - ix, fy = y - iy;
       const ux = smoothstep(fx), uy = smoothstep(fy);
-      const v00 = hash(ix, iy), v10 = hash(ix + 1, iy);
-      const v01 = hash(ix, iy + 1), v11 = hash(ix + 1, iy + 1);
-      return lerp(lerp(v00, v10, ux), lerp(v01, v11, ux), uy);
+      return lerp(lerp(hash(ix, iy), hash(ix+1, iy), ux), lerp(hash(ix, iy+1), hash(ix+1, iy+1), ux), uy);
     }
 
-    class BackgroundGenerator {
-      constructor(ctx) {
-        this.ctx = ctx;
-      }
-
-      generateBackground(type, w, h, palette, options = {}) {
-        this.ctx.save();
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-
-        switch (type) {
-          case 'circuit': this._drawCircuitBoard(w, h, palette, options); break;
-          case 'skyline': this._drawCitySkyline(w, h, palette, options); break;
-          case 'waves': this._drawWaves(w, h, palette, options); break;
-          case 'isometric': this._drawIsometric(w, h, palette, options); break;
-          case 'gems': this._drawGems(w, h, palette, options); break;
-          case 'checkerboard': this._drawCheckerboard(w, h, palette, options); break;
-          case 'hex-cubes': this._drawHexCubes(w, h, palette, options); break;
-          default:
-            this.ctx.fillStyle = palette[0] || '#000';
-            this.ctx.fillRect(0, 0, w, h);
-        }
-        this.ctx.restore();
-      }
-
-      _drawCheckerboard(w, h, palette, options) {
-        const scale = options.scale || 40;
-        const rotate = (options.rotation || 15) * (Math.PI / 180);
-        const diag = Math.hypot(w, h) * 1.5;
-
-        this.ctx.fillStyle = palette[0];
-        this.ctx.fillRect(0, 0, w, h);
-        this.ctx.fillStyle = palette[1 % palette.length];
-
-        this.ctx.save();
-        this.ctx.translate(w / 2, h / 2);
-        this.ctx.rotate(rotate);
-        this.ctx.translate(-diag / 2, -diag / 2);
-
-        for (let y = 0; y < diag; y += scale) {
-          for (let x = 0; x < diag; x += scale) {
-            if (Math.floor(x / scale + y / scale) % 2 === 0) {
-              this.ctx.fillRect(x, y, scale, scale);
-            }
-          }
-        }
-        this.ctx.restore();
-      }
-
-      _drawHexCubes(w, h, palette, options) {
-        const r = options.scale || 30;
-        const hexW = Math.sqrt(3) * r;
-        const hexH = 2 * r;
-        
-        const topCol = palette[0];
-        const leftCol = palette[1 % palette.length];
-        const rightCol = palette[2 % palette.length];
-
-        this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, w, h);
-        this.ctx.lineJoin = 'round';
-
-        for (let y = -hexH; y < h + hexH; y += hexH * 0.75) {
-          for (let x = -hexW; x < w + hexW; x += hexW) {
-            let cx = x;
-            if (Math.round(y / (hexH * 0.75)) % 2 !== 0) cx += hexW / 2;
-
-            this.ctx.fillStyle = topCol; this.ctx.strokeStyle = topCol; this.ctx.lineWidth = 1;
-            this.ctx.beginPath(); this.ctx.moveTo(cx, y); this.ctx.lineTo(cx + hexW / 2, y - r / 2);
-            this.ctx.lineTo(cx, y - r); this.ctx.lineTo(cx - hexW / 2, y - r / 2);
-            this.ctx.fill(); this.ctx.stroke();
-
-            this.ctx.fillStyle = leftCol; this.ctx.strokeStyle = leftCol;
-            this.ctx.beginPath(); this.ctx.moveTo(cx, y); this.ctx.lineTo(cx - hexW / 2, y - r / 2);
-            this.ctx.lineTo(cx - hexW / 2, y + r / 2); this.ctx.lineTo(cx, y + r);
-            this.ctx.fill(); this.ctx.stroke();
-
-            this.ctx.fillStyle = rightCol; this.ctx.strokeStyle = rightCol;
-            this.ctx.beginPath(); this.ctx.moveTo(cx, y); this.ctx.lineTo(cx + hexW / 2, y - r / 2);
-            this.ctx.lineTo(cx + hexW / 2, y + r / 2); this.ctx.lineTo(cx, y + r);
-            this.ctx.fill(); this.ctx.stroke();
-            
-            this.ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            this.ctx.lineWidth = 1;
-            this.ctx.stroke();
-          }
-        }
-      }
-
-      _drawCircuitBoard(w, h, palette, options) {
-        this.ctx.fillStyle = palette[0]; 
-        this.ctx.fillRect(0, 0, w, h);
-
-        const paths = options.density || 40;
-        const stepSize = options.scale || 25;
-        this.ctx.shadowBlur = options.glow || 10;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-
-        for (let i = 0; i < paths; i++) {
-          const color = palette[Math.floor(random() * (palette.length - 1)) + 1];
-          this.ctx.strokeStyle = color;
-          this.ctx.fillStyle = color;
-          this.ctx.shadowColor = color;
-          this.ctx.lineWidth = randomRange(1, options.thickness || 4);
-
-          let cx = Math.floor((random() * w) / stepSize) * stepSize;
-          let cy = Math.floor((random() * h) / stepSize) * stepSize;
-
-          this.ctx.beginPath();
-          this.ctx.arc(cx, cy, this.ctx.lineWidth * 2, 0, Math.PI * 2);
-          this.ctx.fill();
-
-          this.ctx.beginPath();
-          this.ctx.moveTo(cx, cy);
-
-          const segments = Math.floor(randomRange(5, 15));
-          let angle = Math.floor(randomRange(0, 8)) * (Math.PI / 4); 
-
-          for (let s = 0; s < segments; s++) {
-            const distance = (Math.floor(randomRange(1, 6))) * stepSize;
-            cx += Math.cos(angle) * distance;
-            cy += Math.sin(angle) * distance;
-            this.ctx.lineTo(cx, cy);
-            const turn = (random() > 0.5 ? 1 : -1) * (random() > 0.5 ? Math.PI/4 : Math.PI/2);
-            angle += turn;
-          }
-          this.ctx.stroke();
-          
-          this.ctx.beginPath();
-          this.ctx.arc(cx, cy, this.ctx.lineWidth * 2.5, 0, Math.PI * 2);
-          this.ctx.fill();
-        }
-        this.ctx.shadowBlur = 0;
-      }
-
-      _drawCitySkyline(w, h, palette, options) {
-        const skyGrad = this.ctx.createLinearGradient(0, 0, 0, h);
-        skyGrad.addColorStop(0, palette[0]);
-        skyGrad.addColorStop(1, palette[1 % palette.length]);
-        this.ctx.fillStyle = skyGrad;
-        this.ctx.fillRect(0, 0, w, h);
-
-        const layers = options.density || 4;
-        const bldgWidth = options.scale || 40;
-        const depth = (options.depth || 60) / 100;
-        const winChance = (options.windowChance || 30) / 100;
-
-        for (let l = layers; l > 0; l--) {
-          const layerRatio = l / layers;
-          const bldgColor = palette[Math.floor((layers - l) % palette.length)];
-          this.ctx.fillStyle = bldgColor;
-          this.ctx.globalAlpha = (1 - depth) + (1 - layerRatio) * depth;
-
-          let x = 0;
-          while (x < w) {
-            const width = bldgWidth * randomRange(0.5, 2.0) * layerRatio;
-            const height = (h * 0.8) * random() * layerRatio + (h * 0.1);
-            const y = h - height;
-            this.ctx.fillRect(x, y, width, height);
-
-            if (random() < winChance) {
-              this.ctx.fillStyle = palette[palette.length - 1]; 
-              const winSize = width * 0.15;
-              const cols = Math.floor(width / (winSize * 1.5));
-              const rows = Math.floor(height / (winSize * 2));
-
-              for (let wr = 1; wr < rows; wr++) {
-                for (let wc = 1; wc <= cols; wc++) {
-                  if (random() > 0.6) {
-                    const wx = x + wc * (winSize * 1.5) - winSize;
-                    const wy = y + wr * (winSize * 2);
-                    this.ctx.globalAlpha = randomRange(0.2, 1.0);
-                    this.ctx.fillRect(wx, wy, winSize, winSize * 1.5);
-                  }
-                }
-              }
-              this.ctx.fillStyle = bldgColor; 
-              this.ctx.globalAlpha = (1 - depth) + (1 - layerRatio) * depth;
-            }
-            x += width;
-          }
-        }
-        this.ctx.globalAlpha = 1.0;
-      }
-
-      _drawWaves(w, h, palette, options) {
-        this.ctx.fillStyle = palette[0];
-        this.ctx.fillRect(0, 0, w, h);
-
-        const layers = options.density || 6;
-        const baseFreq = options.scale ? (1 / options.scale) : 0.005;
-        const globalAmp = options.amplitude || 60;
-        const comp = (options.complexity || 30) / 100;
-
-        for (let i = 0; i < layers; i++) {
-          const color = palette[(i + 1) % palette.length];
-          this.ctx.fillStyle = color;
-          this.ctx.globalAlpha = 0.85;
-
-          this.ctx.beginPath();
-          this.ctx.moveTo(0, h);
-
-          const amplitude = randomRange(globalAmp * 0.6, globalAmp * 1.4);
-          const freq = baseFreq * randomRange(0.5, 1.5);
-          const phase = randomRange(0, Math.PI * 2);
-          const baseY = (h / layers) * i + amplitude;
-
-          for (let x = 0; x <= w; x += 10) {
-            const y = baseY + Math.sin(x * freq + phase) * amplitude + Math.cos(x * freq * (1.5 + comp * 2) + phase) * (amplitude * comp);
-            if (x === 0) this.ctx.lineTo(x, y); else this.ctx.lineTo(x, y);
-          }
-          this.ctx.lineTo(w, h);
-          this.ctx.closePath();
-          this.ctx.fill();
-
-          this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-          this.ctx.lineWidth = 2;
-          this.ctx.stroke();
-        }
-        this.ctx.globalAlpha = 1.0;
-      }
-
-      _drawIsometric(w, h, palette, options) {
-        this.ctx.fillStyle = palette[0];
-        this.ctx.fillRect(0, 0, w, h);
-
-        const size = options.scale || 40;
-        const pyramidRate = (options.pyramids || 20) / 100;
-        const hVar = options.heightVar || 150;
-        
-        const gridRows = Math.floor(h / size) * 2;
-        const gridCols = Math.floor(w / size) * 2;
-        const originX = w / 2;
-        const originY = h * 0.1;
-
-        const cells = [];
-        for (let y = 0; y < gridRows; y++) {
-          for (let x = 0; x < gridCols; x++) {
-            cells.push({ x, y, depth: x + y });
-          }
-        }
-        cells.sort((a, b) => a.depth - b.depth);
-
-        cells.forEach(cell => {
-          const screenX = originX + (cell.x - cell.y) * Math.cos(Math.PI / 6) * size;
-          const screenY = originY + (cell.x + cell.y) * Math.sin(Math.PI / 6) * size;
-
-          if (screenX < -size*2 || screenX > w + size*2 || screenY > h + size*2) return;
-
-          const baseColor = palette[(cell.x + cell.y) % (palette.length - 1) + 1];
-          const isPyramid = random() < pyramidRate;
-          const heightOffset = randomRange(0, hVar);
-
-          if (isPyramid) {
-            this.ctx.fillStyle = baseColor; this.ctx.globalAlpha = 0.7;
-            this.ctx.beginPath(); this.ctx.moveTo(screenX, screenY);
-            this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5);
-            this.ctx.lineTo(screenX, screenY - heightOffset); this.ctx.fill();
-
-            this.ctx.fillStyle = baseColor; this.ctx.globalAlpha = 0.4;
-            this.ctx.beginPath(); this.ctx.moveTo(screenX, screenY);
-            this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5);
-            this.ctx.lineTo(screenX, screenY - heightOffset); this.ctx.fill();
-            this.ctx.globalAlpha = 1.0;
-          } else {
-            const z = heightOffset;
-            this.ctx.fillStyle = baseColor; this.ctx.globalAlpha = 0.8;
-            this.ctx.beginPath(); this.ctx.moveTo(screenX, screenY - z);
-            this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5 - z);
-            this.ctx.lineTo(screenX - size * 0.866, screenY + size * 0.5);
-            this.ctx.lineTo(screenX, screenY); this.ctx.fill();
-
-            this.ctx.globalAlpha = 0.4;
-            this.ctx.beginPath(); this.ctx.moveTo(screenX, screenY - z);
-            this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5 - z);
-            this.ctx.lineTo(screenX + size * 0.866, screenY + size * 0.5);
-            this.ctx.lineTo(screenX, screenY); this.ctx.fill();
-
-            this.ctx.globalAlpha = 1.0;
-            this.ctx.beginPath(); this.ctx.moveTo(screenX, screenY - z);
-            this.ctx.lineTo(screenX + size * 0.866, screenY - size * 0.5 - z);
-            this.ctx.lineTo(screenX, screenY - size - z);
-            this.ctx.lineTo(screenX - size * 0.866, screenY - size * 0.5 - z);
-            this.ctx.fill();
-            
-            this.ctx.strokeStyle = palette[0]; this.ctx.lineWidth = 0.5; this.ctx.stroke();
-          }
-        });
-      }
-
-      _drawGems(w, h, palette, options) {
-        const spacing = options.scale || 80;
-        const dist = (options.distortion || 80) / 100;
-        const cols = Math.ceil(w / spacing) + 2;
-        const rows = Math.ceil(h / spacing) + 2;
-        const points = [];
-
-        for (let y = -1; y <= rows; y++) {
-          const row = [];
-          for (let x = -1; x <= cols; x++) {
-            row.push({
-              x: x * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing,
-              y: y * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing
-            });
-          }
-          points.push(row);
-        }
-
-        for (let y = 0; y < points.length - 1; y++) {
-          for (let x = 0; x < points[y].length - 1; x++) {
-            const p1 = points[y][x], p2 = points[y][x+1];
-            const p3 = points[y+1][x], p4 = points[y+1][x+1];
-
-            const drawTri = (a, b, c) => {
-              this.ctx.beginPath(); this.ctx.moveTo(a.x, a.y);
-              this.ctx.lineTo(b.x, b.y); this.ctx.lineTo(c.x, c.y); this.ctx.closePath();
-              const grad = this.ctx.createLinearGradient(a.x, a.y, c.x, c.y);
-              grad.addColorStop(0, pick(palette)); grad.addColorStop(1, pick(palette));
-              this.ctx.fillStyle = grad; this.ctx.fill();
-              this.ctx.strokeStyle = 'rgba(255,255,255,0.1)'; this.ctx.stroke();
-            };
-
-            if ((x + y) % 2 === 0) { drawTri(p1, p2, p3); drawTri(p2, p4, p3); } 
-            else { drawTri(p1, p2, p4); drawTri(p1, p4, p3); }
-          }
-        }
-      }
-    }
-
-    const bgGen = new BackgroundGenerator(ctx);
-
+    // --- ENGINES (ALL 18 GENERATORS) ---
     const ENGINES = {
       blocks: {
         name: "Brutalist Blocks",
         params: {
-          depth: { type: 'range', min: 2, max: 9, val: 6, label: "Partition Depth" },
-          padding: { type: 'range', min: 0, max: 50, val: 10, label: "Block Padding" },
+          depth: { type: 'range', min: 1, max: 12, val: 6, label: "Partition Depth" },
+          padding: { type: 'range', min: 0, max: 150, val: 10, label: "Block Padding" },
           hatchChance: { type: 'range', min: 0, max: 100, val: 30, label: "Hatching Pattern %" }
         },
         render: (ctx, w, h, p, colors) => {
           ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
           const rects = [];
           function splitRect(x, y, rw, rh, currentDepth) {
-            if (currentDepth === 0 || (currentDepth < p.depth && random() > 0.85)) {
-              rects.push({x, y, w: rw, h: rh}); return;
-            }
-            const splitRatio = randomRange(0.3, 0.7);
+            if (currentDepth === 0 || (currentDepth < p.depth && random() > 0.85)) { rects.push({x, y, w: rw, h: rh}); return; }
+            const splitRatio = randomRange(0.2, 0.8);
             if (rw > rh) { 
-              const split = rw * splitRatio;
-              splitRect(x, y, split, rh, currentDepth - 1);
-              splitRect(x + split, y, rw - split, rh, currentDepth - 1);
+              const split = rw * splitRatio; splitRect(x, y, split, rh, currentDepth - 1); splitRect(x + split, y, rw - split, rh, currentDepth - 1);
             } else { 
-              const split = rh * splitRatio;
-              splitRect(x, y, rw, split, currentDepth - 1);
-              splitRect(x, y + split, rw, rh - split, currentDepth - 1);
+              const split = rh * splitRatio; splitRect(x, y, rw, split, currentDepth - 1); splitRect(x, y + split, rw, rh - split, currentDepth - 1);
             }
           }
           splitRect(0, 0, w, h, p.depth);
 
           rects.forEach(rect => {
-            const pad = p.padding, bx = rect.x + pad, by = rect.y + pad;
-            const bw = rect.w - pad*2, bh = rect.h - pad*2;
+            const pad = p.padding, bx = rect.x + pad, by = rect.y + pad, bw = rect.w - pad*2, bh = rect.h - pad*2;
             if (bw <= 0 || bh <= 0) return;
-
             const col1 = pick(colors);
-            ctx.fillStyle = colors[0]; ctx.globalAlpha = 0.5;
-            ctx.fillRect(bx + pad/2, by + pad/2, bw, bh); ctx.globalAlpha = 1.0;
+
+            ctx.fillStyle = colors[0]; ctx.globalAlpha = 0.5; ctx.fillRect(bx + pad/2, by + pad/2, bw, bh); ctx.globalAlpha = 1.0;
 
             if (random() * 100 < p.hatchChance) {
-              const col2 = pick(colors), stripeW = randomRange(4, 15);
+              const col2 = pick(colors), stripeW = randomRange(2, 20);
               ctx.save(); ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
               ctx.fillStyle = col1; ctx.fillRect(bx, by, bw, bh);
               ctx.fillStyle = col2;
@@ -769,11 +419,13 @@
               else for(let y = by; y < by + bh; y += stripeW * 2) ctx.fillRect(bx, y, bw, stripeW);
               ctx.restore();
             } else {
-              ctx.fillStyle = col1; ctx.fillRect(bx, by, bw, bh);
+              ctx.fillStyle = col1; ctx.strokeStyle = col1; ctx.lineWidth = 1;
+              ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx, by, bw, bh); // Pixel fix
             }
             ctx.strokeStyle = colors[0]; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
+
             if (random() > 0.7) {
-              ctx.fillStyle = pick(colors);
+              ctx.fillStyle = pick(colors); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
               ctx.beginPath(); ctx.arc(bx + bw/2, by + bh/2, Math.min(bw, bh) * randomRange(0.1, 0.4), 0, Math.PI*2);
               ctx.fill(); ctx.stroke();
             }
@@ -781,37 +433,159 @@
         }
       },
 
-      organicFlow: {
-        name: "Organic Feathers",
+      geometricGrid: {
+        name: "Geometric Grid",
         params: {
-          density: { type: 'range', min: 1000, max: 15000, val: 4000, label: "Strand Density" },
-          scale: { type: 'range', min: 1, max: 200, val: 40, label: "Field Frequency" },
-          length: { type: 'range', min: 10, max: 300, val: 120, label: "Strand Length" },
-          thickness: { type: 'range', min: 1, max: 20, val: 3, label: "Stroke Weight" },
-          curve: { type: 'range', min: 1, max: 10, val: 5, label: "Curve Tightness" }
+          scale: { type: 'range', min: 10, max: 500, val: 80, label: "Cell Size" },
+          shadow: { type: 'range', min: 0, max: 100, val: 15, label: "Shadow Depth" },
+          shapes: { type: 'select', options: ['all', 'squares', 'circles', 'mixed'], val: 'all', label: "Shape Mix" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const s = p.scale, cols = Math.ceil(w / s) + 1, rows = Math.ceil(h / s) + 1;
+          
+          ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = p.shadow; ctx.shadowOffsetX = p.shadow * 0.5; ctx.shadowOffsetY = p.shadow * 0.5;
+
+          for (let y = -1; y < rows; y++) {
+            for (let x = -1; x < cols; x++) {
+              let cx = x * s, cy = y * s;
+              ctx.fillStyle = pick(colors); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
+              let type = Math.floor(random() * 4);
+              if (p.shapes === 'squares') type = 0; if (p.shapes === 'circles') type = 1; if (p.shapes === 'mixed') type = Math.floor(random() * 2);
+
+              ctx.beginPath();
+              if (type === 0) ctx.rect(cx, cy, s+1, s+1); // +1 fixes subpixel lines
+              else if (type === 1) ctx.arc(cx + s/2, cy + s/2, s/2 + 0.5, 0, Math.PI*2);
+              else if (type === 2) { ctx.moveTo(cx, cy+s+1); ctx.lineTo(cx+s/2, cy); ctx.lineTo(cx+s+1, cy+s+1); } 
+              else ctx.arc(cx + s/2, cy + s/2, s/2 + 0.5, 0, Math.PI);
+              ctx.fill(); ctx.stroke();
+            }
+          }
+          ctx.shadowColor = 'transparent';
+        }
+      },
+
+      colorBands: {
+        name: "Color Bands",
+        params: {
+          cols: { type: 'range', min: 1, max: 200, val: 4, label: "Vertical Columns" },
+          density: { type: 'range', min: 1, max: 1000, val: 60, label: "Row Density" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const colW = w / p.cols;
+          for (let c = 0; c < p.cols; c++) {
+            let y = 0;
+            while (y < h) {
+              let dh = randomRange(1, (2000 / p.density));
+              ctx.fillStyle = pick(colors);
+              ctx.fillRect(c * colW - 0.5, y - 0.5, colW + 1.5, dh + 1.5); // Overshoot for edge bleed
+              y += dh;
+            }
+          }
+        }
+      },
+
+      vortexBlocks: {
+        name: "Vortex Blocks",
+        params: {
+          density: { type: 'range', min: 10, max: 5000, val: 200, label: "Spiral Density" },
+          scale: { type: 'range', min: 1, max: 500, val: 50, label: "Noise Field Scale" },
+          length: { type: 'range', min: 5, max: 300, val: 30, label: "Block Size" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const ns = p.scale / 10000;
+          for (let i = 0; i < p.density; i++) {
+             let x = random() * w, y = random() * h;
+             const col = pick(colors);
+             for(let s=0; s<40; s++) {
+                let n = noise2D(x * ns, y * ns) * Math.PI * 4;
+                x += Math.cos(n) * (p.length * 1.5); y += Math.sin(n) * (p.length * 1.5);
+                ctx.save(); ctx.translate(x, y); ctx.rotate(n);
+                ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1;
+                ctx.fillRect(0, -p.length/4, p.length, p.length/2);
+                ctx.strokeRect(0, -p.length/4, p.length, p.length/2);
+                ctx.restore();
+             }
+          }
+        }
+      },
+
+      flowSegments: {
+        name: "Flow Segments",
+        params: {
+          density: { type: 'range', min: 10, max: 10000, val: 500, label: "Path Count" },
+          thickness: { type: 'range', min: 1, max: 200, val: 12, label: "Line Weight" },
+          scale: { type: 'range', min: 1, max: 500, val: 60, label: "Curve Scale" }
         },
         render: (ctx, w, h, p, colors) => {
           ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
           ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          const palette = colors.slice(1);
-          const noiseScale = p.scale / 10000;
-          const curveMult = p.curve * Math.PI;
+          const ns = p.scale / 10000;
+          for (let i = 0; i < p.density; i++) {
+            let x = random() * w, y = random() * h;
+            ctx.beginPath(); ctx.moveTo(x, y);
+            ctx.strokeStyle = pick(colors); ctx.lineWidth = p.thickness * randomRange(0.5, 1.5);
+            let len = randomRange(10, 200);
+            for(let s=0; s<len; s++) {
+               let n = noise2D(x * ns, y * ns) * Math.PI * 2;
+               x += Math.cos(n) * 2.5; y += Math.sin(n) * 2.5; ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+          }
+        }
+      },
+
+      polarPoints: {
+        name: "Polar Points",
+        params: {
+          density: { type: 'range', min: 100, max: 50000, val: 4000, label: "Point Density" },
+          amp: { type: 'range', min: 1, max: 1000, val: 120, label: "Wave Amplitude" },
+          freq: { type: 'range', min: 1, max: 200, val: 10, label: "Wave Frequency" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const cols = Math.floor(Math.sqrt(p.density)), rows = cols;
+          const spacingX = w / cols, spacingY = h / rows, f = p.freq / 1000;
+          for(let r=0; r<=rows; r++) {
+            for(let c=0; c<=cols; c++) {
+              let x = c * spacingX, y = r * spacingY;
+              let nx = x + Math.sin(y * f) * p.amp; let ny = y + Math.cos(x * f) * p.amp;
+              ctx.beginPath(); ctx.arc(nx, ny, randomRange(1, Math.max(2, p.amp/10)), 0, Math.PI * 2);
+              ctx.fillStyle = pick(colors); ctx.fill();
+            }
+          }
+        }
+      },
+
+      organicFlow: {
+        name: "Organic Feathers",
+        params: {
+          density: { type: 'range', min: 100, max: 30000, val: 4000, label: "Strand Density" },
+          scale: { type: 'range', min: 1, max: 500, val: 40, label: "Field Frequency" },
+          length: { type: 'range', min: 1, max: 1000, val: 120, label: "Strand Length" },
+          thickness: { type: 'range', min: 0.1, max: 50, val: 3, label: "Stroke Weight" },
+          curve: { type: 'range', min: 0.1, max: 20, val: 5, label: "Curve Tightness" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          const palette = colors.slice(1), noiseScale = p.scale / 10000, curveMult = p.curve * Math.PI;
 
           for (let i = 0; i < p.density; i++) {
             let x = random() * w, y = random() * h;
             ctx.beginPath(); ctx.moveTo(x, y);
-            const col = pick(palette);
-            const alpha = randomRange(0.2, 0.9);
+            const col = pick(palette), alpha = randomRange(0.1, 0.9);
             ctx.strokeStyle = `${col}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-            ctx.lineWidth = randomRange(0.5, p.thickness);
+            ctx.lineWidth = randomRange(0.1, p.thickness);
             const actualLength = p.length * randomRange(0.5, 1.5);
 
             for (let s = 0; s < actualLength; s++) {
               let n1 = noise2D(x * noiseScale, y * noiseScale);
               let n2 = noise2D(x * noiseScale * 2.5, y * noiseScale * 2.5) * 0.5;
               let angle = (n1 + n2) * curveMult;
-              x += Math.cos(angle) * 1.5; y += Math.sin(angle) * 1.5;
-              ctx.lineTo(x, y);
+              x += Math.cos(angle) * 1.5; y += Math.sin(angle) * 1.5; ctx.lineTo(x, y);
             }
             ctx.stroke();
           }
@@ -821,21 +595,17 @@
       kaleidoscope: {
         name: "Kaleidoscope",
         params: {
-          folds: { type: 'range', min: 2, max: 32, val: 12, label: "Symmetry Folds" },
-          density: { type: 'range', min: 50, max: 2000, val: 600, label: "Fill Density" },
-          thickness: { type: 'range', min: 1, max: 40, val: 3, label: "Line Weight" },
+          folds: { type: 'range', min: 2, max: 64, val: 12, label: "Symmetry Folds" },
+          density: { type: 'range', min: 10, max: 5000, val: 600, label: "Fill Density" },
+          thickness: { type: 'range', min: 1, max: 100, val: 3, label: "Line Weight" },
           style: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Geometry Style" }
         },
         render: (ctx, w, h, p, colors) => {
-          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds;
-          const wedgeAngle = (Math.PI * 2) / folds;
+          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds, wedgeAngle = (Math.PI * 2) / folds;
           const radius = Math.sqrt(w * w + h * h) * 1.2;
-
-          const sliceBuf = document.createElement('canvas');
-          sliceBuf.width = radius; sliceBuf.height = radius;
+          const sliceBuf = document.createElement('canvas'); sliceBuf.width = radius; sliceBuf.height = radius;
           const sctx = sliceBuf.getContext('2d');
-          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius);
-          sctx.lineCap = 'round'; sctx.lineJoin = 'round';
+          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius); sctx.lineCap = 'round'; sctx.lineJoin = 'round';
 
           for (let i = 0; i < p.density; i++) {
             sctx.fillStyle = pick(colors); sctx.strokeStyle = pick(colors);
@@ -844,22 +614,18 @@
             const px = Math.cos(theta) * radDist, py = Math.sin(theta) * radDist, sz = randomRange(5, p.thickness * 15);
 
             sctx.save(); sctx.translate(px, py); sctx.rotate(random() * Math.PI * 2);
-
             if (p.style === 'geometric') {
               if (random() > 0.5) sctx.fillRect(-sz/2, -sz/2, sz, sz); else { sctx.beginPath(); sctx.arc(0, 0, sz/2, 0, Math.PI*2); sctx.fill(); }
               if (random() > 0.5) sctx.strokeRect(-sz/2, -sz/2, sz*1.4, sz*1.4);
-            } 
-            else if (p.style === 'organic') {
+            } else if (p.style === 'organic') {
               sctx.beginPath(); sctx.moveTo(-sz, 0); sctx.quadraticCurveTo(0, sz*1.5, sz, 0); sctx.quadraticCurveTo(0, -sz*0.5, -sz, 0); sctx.fill();
               if (random() > 0.3) { sctx.beginPath(); sctx.moveTo(0,0); sctx.lineTo(sz*2, randomRange(-sz, sz)); sctx.stroke(); }
-            } 
-            else if (p.style === 'orbital') {
+            } else if (p.style === 'orbital') {
               sctx.beginPath(); sctx.arc(0, 0, sz, 0, randomRange(Math.PI/2, Math.PI*1.5)); sctx.stroke();
               if(random() > 0.8) { sctx.beginPath(); sctx.arc(sz, 0, sz/4, 0, Math.PI*2); sctx.fill(); }
             }
             sctx.restore();
           }
-
           ctx.translate(w / 2, h / 2);
           for (let f = 0; f < folds; f++) {
             ctx.save(); ctx.rotate(f * wedgeAngle);
@@ -874,9 +640,9 @@
       topography: {
         name: "Topography",
         params: {
-          scale: { type: 'range', min: 10, max: 300, val: 120, label: "Noise Frequency" },
-          bands: { type: 'range', min: 2, max: 50, val: 16, label: "Elevation Bands" },
-          lineWeight: { type: 'range', min: 0, max: 20, val: 5, label: "Contour Thickness" }
+          scale: { type: 'range', min: 1, max: 1000, val: 120, label: "Noise Frequency" },
+          bands: { type: 'range', min: 2, max: 100, val: 16, label: "Elevation Bands" },
+          lineWeight: { type: 'range', min: 0, max: 50, val: 5, label: "Contour Thickness" }
         },
         render: (ctx, w, h, p, colors) => {
           const offCanvas = document.createElement('canvas'); offCanvas.width = w; offCanvas.height = h;
@@ -906,19 +672,19 @@
       cellular: {
         name: "Cellular Blooms",
         params: {
-          cells: { type: 'range', min: 5, max: 150, val: 40, label: "Cell Count" },
-          distortion: { type: 'range', min: 10, max: 400, val: 120, label: "Membrane Distortion" },
-          mutation: { type: 'range', min: 1, max: 20, val: 6, label: "Mutation Exponent" },
-          layers: { type: 'range', min: 1, max: 15, val: 8, label: "Internal Layers" }
+          cells: { type: 'range', min: 1, max: 500, val: 40, label: "Cell Count" },
+          distortion: { type: 'range', min: 0, max: 1000, val: 120, label: "Membrane Distortion" },
+          mutation: { type: 'range', min: 1, max: 50, val: 6, label: "Mutation Exponent" },
+          layers: { type: 'range', min: 1, max: 30, val: 8, label: "Internal Layers" }
         },
         render: (ctx, w, h, p, colors) => {
           ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
           for(let i=0; i<p.cells; i++) {
-            const cx = random() * w, cy = random() * h, baseRad = randomRange(20, Math.min(w, h) * 0.3);
+            const cx = random() * w, cy = random() * h, baseRad = randomRange(10, Math.min(w, h) * 0.4);
             for(let l = p.layers; l > 0; l--) {
               const layerRatio = (l / p.layers), r = baseRad * layerRatio;
               ctx.beginPath();
-              const points = Math.max(100, Math.floor(r * 2)); 
+              const points = Math.max(50, Math.floor(r * 2)); 
               for(let pt=0; pt<=points; pt++) {
                 const theta = (pt / points) * Math.PI * 2;
                 const n1 = noise2D(Math.cos(theta)*1.5 + cx*0.01, Math.sin(theta)*1.5 + cy*0.01);
@@ -928,7 +694,7 @@
                 if(pt === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
               }
               ctx.fillStyle = colors[l % colors.length]; ctx.globalAlpha = 0.9; ctx.fill();
-              ctx.strokeStyle = colors[(l+1) % colors.length]; ctx.lineWidth = randomRange(0.5, 2); ctx.stroke();
+              ctx.strokeStyle = colors[(l+1) % colors.length]; ctx.lineWidth = randomRange(0.5, 3); ctx.stroke();
             }
           }
           ctx.globalAlpha = 1.0;
@@ -936,10 +702,10 @@
       },
 
       isometricBlocks: {
-        name: "Isometric Grid",
+        name: "Isometric Monoliths",
         params: {
-          grid: { type: 'range', min: 5, max: 40, val: 18, label: "Matrix Resolution" },
-          height: { type: 'range', min: 10, max: 300, val: 120, label: "Vertical Extrusion" }
+          grid: { type: 'range', min: 2, max: 100, val: 18, label: "Matrix Resolution" },
+          height: { type: 'range', min: 0, max: 1000, val: 120, label: "Vertical Extrusion" }
         },
         render: (ctx, w, h, p, colors) => {
           ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
@@ -979,7 +745,6 @@
             grad = ctx.createLinearGradient(w/2 - Math.cos(angleRad)*(diag/2), h/2 - Math.sin(angleRad)*(diag/2), w/2 + Math.cos(angleRad)*(diag/2), h/2 + Math.sin(angleRad)*(diag/2));
           } else if (p.style === 'radial') grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h)/1.2);
           else grad = ctx.createConicGradient(angleRad, w/2, h/2);
-          
           colors.forEach((c, idx) => {
             let stop = idx / (colors.length - 1);
             if(idx > 0 && idx < colors.length - 1) stop = stop * (p.blend / 50);
@@ -992,73 +757,186 @@
       checkerboard: {
         name: "Checkerboard",
         params: {
-          scale: { type: 'range', min: 10, max: 200, val: 40, label: "Square Size" },
+          scale: { type: 'range', min: 2, max: 500, val: 40, label: "Square Size" },
           rotation: { type: 'range', min: -90, max: 90, val: 15, label: "Grid Angle (°)" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('checkerboard', w, h, colors, p)
+        render: (ctx, w, h, p, colors) => {
+          const scale = p.scale, rotate = p.rotation * (Math.PI / 180), diag = Math.hypot(w, h) * 1.5;
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = colors[1 % colors.length]; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
+          ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(rotate); ctx.translate(-diag / 2, -diag / 2);
+          for (let y = 0; y < diag; y += scale) {
+            for (let x = 0; x < diag; x += scale) {
+              if (Math.floor(x / scale + y / scale) % 2 === 0) {
+                ctx.fillRect(x, y, scale+1, scale+1); ctx.strokeRect(x, y, scale+1, scale+1); // Pixel gap fix
+              }
+            }
+          }
+          ctx.restore();
+        }
       },
 
       hexCubes: {
         name: "Hex Cubes",
         params: {
-          scale: { type: 'range', min: 10, max: 150, val: 30, label: "Hex Scale" }
+          scale: { type: 'range', min: 5, max: 200, val: 30, label: "Hex Scale" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('hex-cubes', w, h, colors, p)
+        render: (ctx, w, h, p, colors) => {
+          const r = p.scale, hexW = Math.sqrt(3) * r, hexH = 2 * r;
+          const topCol = colors[0], leftCol = colors[1 % colors.length], rightCol = colors[2 % colors.length];
+          ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
+
+          for (let y = -hexH; y < h + hexH; y += hexH * 0.75) {
+            for (let x = -hexW; x < w + hexW; x += hexW) {
+              let cx = x; if (Math.round(y / (hexH * 0.75)) % 2 !== 0) cx += hexW / 2;
+
+              ctx.fillStyle = topCol; ctx.strokeStyle = topCol; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + hexW / 2, y - r / 2); ctx.lineTo(cx, y - r); ctx.lineTo(cx - hexW / 2, y - r / 2);
+              ctx.fill(); ctx.stroke();
+
+              ctx.fillStyle = leftCol; ctx.strokeStyle = leftCol;
+              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx - hexW / 2, y - r / 2); ctx.lineTo(cx - hexW / 2, y + r / 2); ctx.lineTo(cx, y + r);
+              ctx.fill(); ctx.stroke();
+
+              ctx.fillStyle = rightCol; ctx.strokeStyle = rightCol;
+              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + hexW / 2, y - r / 2); ctx.lineTo(cx + hexW / 2, y + r / 2); ctx.lineTo(cx, y + r);
+              ctx.fill(); ctx.stroke();
+            }
+          }
+        }
       },
 
       bgCircuit: {
         name: "Circuit Board",
         params: {
-          density: { type: 'range', min: 10, max: 200, val: 50, label: "Path Count" },
-          scale: { type: 'range', min: 10, max: 100, val: 25, label: "Grid Step Size" },
-          thickness: { type: 'range', min: 1, max: 10, val: 2, label: "Trace Weight" },
-          glow: { type: 'range', min: 0, max: 50, val: 10, label: "Neon Glow" }
+          density: { type: 'range', min: 1, max: 500, val: 50, label: "Path Count" },
+          scale: { type: 'range', min: 5, max: 200, val: 25, label: "Grid Step Size" },
+          thickness: { type: 'range', min: 1, max: 20, val: 2, label: "Trace Weight" },
+          glow: { type: 'range', min: 0, max: 100, val: 10, label: "Neon Glow" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('circuit', w, h, colors, p)
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.shadowBlur = p.glow; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let i = 0; i < p.density; i++) {
+            const col = colors[Math.floor(random() * (colors.length - 1)) + 1];
+            ctx.strokeStyle = col; ctx.fillStyle = col; ctx.shadowColor = col; ctx.lineWidth = randomRange(1, p.thickness);
+            let cx = Math.floor((random() * w) / p.scale) * p.scale, cy = Math.floor((random() * h) / p.scale) * p.scale;
+
+            ctx.beginPath(); ctx.arc(cx, cy, ctx.lineWidth * 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx, cy);
+            let angle = Math.floor(randomRange(0, 8)) * (Math.PI / 4); 
+            for (let s = 0; s < Math.floor(randomRange(5, 15)); s++) {
+              cx += Math.cos(angle) * (Math.floor(randomRange(1, 6)) * p.scale); cy += Math.sin(angle) * (Math.floor(randomRange(1, 6)) * p.scale);
+              ctx.lineTo(cx, cy); angle += (random() > 0.5 ? 1 : -1) * (random() > 0.5 ? Math.PI/4 : Math.PI/2);
+            }
+            ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, ctx.lineWidth * 2.5, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+        }
       },
 
       bgSkyline: {
         name: "City Skyline",
         params: {
-          density: { type: 'range', min: 2, max: 10, val: 4, label: "Parallax Layers" },
-          scale: { type: 'range', min: 10, max: 150, val: 40, label: "Building Width" },
+          density: { type: 'range', min: 1, max: 20, val: 4, label: "Parallax Layers" },
+          scale: { type: 'range', min: 5, max: 300, val: 40, label: "Building Width" },
           windowChance: { type: 'range', min: 0, max: 100, val: 30, label: "Window Density %" },
-          depth: { type: 'range', min: 10, max: 100, val: 60, label: "Atmospheric Depth %" }
+          depth: { type: 'range', min: 0, max: 100, val: 60, label: "Atmospheric Depth %" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('skyline', w, h, colors, p)
+        render: (ctx, w, h, p, colors) => {
+          const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+          skyGrad.addColorStop(0, colors[0]); skyGrad.addColorStop(1, colors[1 % colors.length]);
+          ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, h);
+          
+          for (let l = p.density; l > 0; l--) {
+            const layerRatio = l / p.density;
+            const bldgColor = colors[Math.floor((p.density - l) % colors.length)];
+            ctx.fillStyle = bldgColor; ctx.globalAlpha = (1 - (p.depth/100)) + (1 - layerRatio) * (p.depth/100);
+
+            let x = 0;
+            while (x < w) {
+              const width = p.scale * randomRange(0.5, 2.0) * layerRatio, height = (h * 0.8) * random() * layerRatio + (h * 0.1), y = h - height;
+              ctx.fillRect(x, y, width+1, height+1); // Pixel gap fix
+
+              if (random() < (p.windowChance/100)) {
+                ctx.fillStyle = colors[colors.length - 1]; 
+                const winSize = width * 0.15, cols = Math.floor(width / (winSize * 1.5)), rows = Math.floor(height / (winSize * 2));
+                for (let wr = 1; wr < rows; wr++) {
+                  for (let wc = 1; wc <= cols; wc++) {
+                    if (random() > 0.6) {
+                      ctx.globalAlpha = randomRange(0.2, 1.0);
+                      ctx.fillRect(x + wc * (winSize * 1.5) - winSize, y + wr * (winSize * 2), winSize, winSize * 1.5);
+                    }
+                  }
+                }
+                ctx.fillStyle = bldgColor; ctx.globalAlpha = (1 - (p.depth/100)) + (1 - layerRatio) * (p.depth/100);
+              }
+              x += width;
+            }
+          }
+          ctx.globalAlpha = 1.0;
+        }
       },
 
       bgWaves: {
         name: "Layered Waves",
         params: {
-          density: { type: 'range', min: 2, max: 30, val: 8, label: "Wave Layers" },
-          scale: { type: 'range', min: 10, max: 500, val: 200, label: "Wave Frequency" },
-          amplitude: { type: 'range', min: 10, max: 300, val: 60, label: "Wave Height" },
+          density: { type: 'range', min: 1, max: 100, val: 8, label: "Wave Layers" },
+          scale: { type: 'range', min: 1, max: 1000, val: 200, label: "Wave Frequency" },
+          amplitude: { type: 'range', min: 0, max: 500, val: 60, label: "Wave Height" },
           complexity: { type: 'range', min: 0, max: 100, val: 30, label: "Turbulence" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('waves', w, h, colors, p)
-      },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const baseFreq = 1 / p.scale, comp = p.complexity / 100;
 
-      bgIsometric: {
-        name: "Iso-City Nodes",
-        params: {
-          scale: { type: 'range', min: 10, max: 150, val: 40, label: "Block Size" },
-          pyramids: { type: 'range', min: 0, max: 100, val: 20, label: "Pyramid Chance %" },
-          heightVar: { type: 'range', min: 0, max: 300, val: 150, label: "Height Variance" }
-        },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('isometric', w, h, colors, p)
+          for (let i = 0; i < p.density; i++) {
+            ctx.fillStyle = colors[(i + 1) % colors.length]; ctx.globalAlpha = 0.85;
+            ctx.beginPath(); ctx.moveTo(0, h);
+            const amplitude = randomRange(p.amplitude * 0.6, p.amplitude * 1.4), freq = baseFreq * randomRange(0.5, 1.5), phase = randomRange(0, Math.PI * 2), baseY = (h / p.density) * i + amplitude;
+            for (let x = 0; x <= w; x += 10) {
+              const y = baseY + Math.sin(x * freq + phase) * amplitude + Math.cos(x * freq * (1.5 + comp * 2) + phase) * (amplitude * comp);
+              if (x === 0) ctx.lineTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+          }
+          ctx.globalAlpha = 1.0;
+        }
       },
 
       bgGems: {
         name: "Crystal Gems",
         params: {
-          scale: { type: 'range', min: 20, max: 300, val: 80, label: "Facet Size" },
-          distortion: { type: 'range', min: 0, max: 100, val: 80, label: "Shatter Distortion" }
+          scale: { type: 'range', min: 10, max: 500, val: 80, label: "Facet Size" },
+          distortion: { type: 'range', min: 0, max: 200, val: 80, label: "Shatter Distortion" }
         },
-        render: (ctx, w, h, p, colors) => bgGen.generateBackground('gems', w, h, colors, p)
+        render: (ctx, w, h, p, colors) => {
+          const spacing = p.scale, dist = p.distortion / 100, cols = Math.ceil(w / spacing) + 2, rows = Math.ceil(h / spacing) + 2, points = [];
+          for (let y = -1; y <= rows; y++) {
+            const row = [];
+            for (let x = -1; x <= cols; x++) row.push({ x: x * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing, y: y * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing });
+            points.push(row);
+          }
+
+          for (let y = 0; y < points.length - 1; y++) {
+            for (let x = 0; x < points[y].length - 1; x++) {
+              const drawTri = (a, b, c) => {
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath();
+                const grad = ctx.createLinearGradient(a.x, a.y, c.x, c.y); grad.addColorStop(0, pick(colors)); grad.addColorStop(1, pick(colors));
+                ctx.fillStyle = grad; ctx.fill();
+                ctx.strokeStyle = grad; ctx.lineWidth = 1.5; ctx.stroke(); // Fix subpixel aliasing
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke(); // Highlight
+              };
+              if ((x + y) % 2 === 0) { drawTri(points[y][x], points[y][x+1], points[y+1][x]); drawTri(points[y][x+1], points[y+1][x+1], points[y+1][x]); } 
+              else { drawTri(points[y][x], points[y][x+1], points[y+1][x+1]); drawTri(points[y][x], points[y+1][x+1], points[y+1][x]); }
+            }
+          }
+        }
       }
     };
 
+    // --- UI CONTROLLER ---
     const uiEngineSelect = document.getElementById('engineSelect');
     const uiDynamicControls = document.getElementById('dynamicControls');
     const paletteContainer = document.getElementById("paletteContainer");
@@ -1092,7 +970,7 @@
         const wrap = document.createElement('div'); wrap.className = 'control-group';
         if (conf.type === 'range') {
           wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span><span class="val" id="val_${key}">${conf.val}</span></div>
-                            <input type="range" id="param_${key}" min="${conf.min}" max="${conf.max}" value="${conf.val}">`;
+                            <input type="range" id="param_${key}" min="${conf.min}" max="${conf.max}" step="${(conf.max - conf.min) > 10 ? 1 : 0.1}" value="${conf.val}">`;
           uiDynamicControls.appendChild(wrap);
           document.getElementById(`param_${key}`).addEventListener('input', (e) => {
             document.getElementById(`val_${key}`).innerText = e.target.value;
@@ -1107,6 +985,7 @@
       });
     }
 
+    // --- POST PROCESSING ---
     function applyGrainPass(amount) {
       if(amount <= 0) return;
       const w = canvas.width, h = canvas.height;
@@ -1122,6 +1001,7 @@
       ctx.putImageData(imgData, 0, 0);
     }
 
+    // --- RENDER PIPELINE ---
     function render() {
       globalSeed = parseInt(document.getElementById('paramSeed').value); 
       const engine = ENGINES[uiEngineSelect.value];
@@ -1147,6 +1027,7 @@
       applyGrainPass(parseFloat(compGrain.value));
     }
 
+    // --- LISTENERS ---
     uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); render(); });
     btnAddColor.addEventListener('click', () => { currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')); renderPaletteUI(); render(); });
     presetPalette.addEventListener('change', (e) => { if (PALETTES[e.target.value]) { currentColors = [...PALETTES[e.target.value]]; renderPaletteUI(); render(); }});
@@ -1195,7 +1076,7 @@
       });
       buildDynamicUI();
 
-      const newSeed = Math.floor(Math.random() * 9999);
+      const newSeed = Math.floor(Math.random() * 99999);
       document.getElementById('paramSeed').value = newSeed; 
       document.getElementById('valSeed').innerText = newSeed; 
       
@@ -1214,6 +1095,7 @@
       });
     });
 
+    // --- INIT ---
     canvas.width = 1080; canvas.height = 1920;
     renderPaletteUI(); buildDynamicUI(); render();
   </script>
