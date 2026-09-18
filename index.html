@@ -1083,8 +1083,43 @@
       render();
     });
 
-    document.getElementById('btnExport').addEventListener('click', () => {
-      const link = document.createElement("a"); link.download = `RRON_GenStudio_${Date.now()}.png`; link.href = canvas.toDataURL("image/png"); link.click();
+    document.getElementById('btnExport').addEventListener('click', async () => {
+      const dataUrl = canvas.toDataURL("image/png");
+      const parts = dataUrl.split(';base64,');
+      const contentType = parts[0].split(':')[1];
+      const raw = window.atob(parts[1]);
+      const uInt8Array = new Uint8Array(raw.length);
+      
+      for (let i = 0; i < raw.length; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+      
+      const blob = new Blob([uInt8Array], { type: contentType });
+      const fileName = `RRON_GenStudio_${Date.now()}.png`;
+
+      if (navigator.share) {
+        const file = new File([blob], fileName, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'RRON Generative Art',
+            });
+            return; 
+          } catch (err) {
+            console.log("Share cancelled or failed", err);
+          }
+        }
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = fileName;
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     });
     
     document.querySelectorAll(".aspect-btn").forEach(btn => {
