@@ -464,7 +464,182 @@
           ctx.shadowColor = 'transparent';
         }
       },
+fluidMarble: {
+        name: "Fluid Marble",
+        params: {
+          scale: { type: 'range', min: 10, max: 1000, val: 300, label: "Noise Scale" },
+          warp: { type: 'range', min: 0, max: 200, val: 60, label: "Domain Warp" },
+          banding: { type: 'range', min: 1, max: 30, val: 8, label: "Color Bands" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          // Utilizing offscreen canvas for rapid pixel manipulation
+          const offCanvas = document.createElement('canvas'); offCanvas.width = w; offCanvas.height = h;
+          const oCtx = offCanvas.getContext('2d'); const imgData = oCtx.createImageData(w, h); const data = imgData.data;
+          
+          const ns = p.scale / 10000;
+          const rgbColors = colors.map(hex => { const num = parseInt(hex.slice(1), 16); return [num >> 16, (num >> 8) & 255, num & 255]; });
+          
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              // Domain Warping: offset the lookup coordinates with noise
+              let wx = x + noise2D(x * ns, y * ns) * p.warp * 10;
+              let wy = y + noise2D(x * ns + 100, y * ns + 100) * p.warp * 10;
+              
+              let n = noise2D(wx * ns, wy * ns);
+              n = (n + 1) / 2; // Normalize to 0-1
+              
+              let bandFloat = n * p.banding;
+              let colorIdx = Math.floor(bandFloat) % colors.length;
+              let nextIdx = (colorIdx + 1) % colors.length;
+              let frac = bandFloat - Math.floor(bandFloat);
+              
+              // Smoothstep interpolation for buttery gradients
+              let f = frac * frac * (3 - 2 * frac);
+              const c1 = rgbColors[colorIdx]; 
+              const c2 = rgbColors[nextIdx];
+              
+              const idx = (y * w + x) * 4;
+              data[idx] = c1[0] + (c2[0] - c1[0]) * f;
+              data[idx+1] = c1[1] + (c2[1] - c1[1]) * f;
+              data[idx+2] = c1[2] + (c2[2] - c1[2]) * f;
+              data[idx+3] = 255;
+            }
+          }
+          oCtx.putImageData(imgData, 0, 0); ctx.drawImage(offCanvas, 0, 0);
+        }
+      },
 
+      truchetGrid: {
+        name: "Truchet Tiles",
+        params: {
+          gridSize: { type: 'range', min: 10, max: 200, val: 50, label: "Cell Size" },
+          thickness: { type: 'range', min: 1, max: 50, val: 12, label: "Stroke Weight" },
+          style: { type: 'select', options: ['arcs', 'diagonals', 'mixed'], val: 'arcs', label: "Tile Style" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          ctx.lineCap = 'round';
+          const s = p.gridSize;
+          
+          for (let y = 0; y < h; y += s) {
+            for (let x = 0; x < w; x += s) {
+              ctx.strokeStyle = pick(colors.slice(1));
+              ctx.lineWidth = p.thickness;
+              
+              const type = p.style === 'mixed' ? (random() > 0.5 ? 'arcs' : 'diagonals') : p.style;
+              const flip = random() > 0.5;
+              
+              ctx.beginPath();
+              if (type === 'diagonals') {
+                if (flip) { ctx.moveTo(x, y); ctx.lineTo(x + s, y + s); }
+                else { ctx.moveTo(x + s, y); ctx.lineTo(x, y + s); }
+              } else {
+                if (flip) {
+                  ctx.arc(x, y, s / 2, 0, Math.PI / 2); ctx.stroke(); 
+                  ctx.beginPath(); ctx.strokeStyle = pick(colors.slice(1));
+                  ctx.arc(x + s, y + s, s / 2, Math.PI, Math.PI * 1.5);
+                } else {
+                  ctx.arc(x + s, y, s / 2, Math.PI / 2, Math.PI); ctx.stroke(); 
+                  ctx.beginPath(); ctx.strokeStyle = pick(colors.slice(1));
+                  ctx.arc(x, y + s, s / 2, Math.PI * 1.5, Math.PI * 2);
+                }
+              }
+              ctx.stroke();
+            }
+          }
+        }
+      },
+
+      neuralConstellation: {
+        name: "Constellation Web",
+        params: {
+          nodes: { type: 'range', min: 50, max: 3000, val: 400, label: "Node Count" },
+          connectDist: { type: 'range', min: 10, max: 500, val: 100, label: "Link Radius" },
+          size: { type: 'range', min: 1, max: 30, val: 5, label: "Node Scale" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const pts = [];
+          
+          for (let i = 0; i < p.nodes; i++) {
+            pts.push({ 
+              x: randomRange(-50, w + 50), 
+              y: randomRange(-50, h + 50), 
+              r: randomRange(1, p.size), 
+              c: pick(colors.slice(1)) 
+            });
+          }
+          
+          ctx.lineCap = 'round';
+          for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+              const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+              const distSq = dx * dx + dy * dy;
+              const maxDistSq = p.connectDist * p.connectDist;
+              
+              if (distSq < maxDistSq) {
+                const dist = Math.sqrt(distSq);
+                const alpha = Math.pow(1 - (dist / p.connectDist), 2); // Exponential fade
+                ctx.strokeStyle = pts[i].c;
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.lineWidth = randomRange(0.2, 1.5);
+                ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
+              }
+            }
+          }
+          
+          ctx.globalAlpha = 1.0;
+          pts.forEach(pt => {
+            ctx.fillStyle = pt.c;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill();
+          });
+        }
+      },
+
+      organicSpores: {
+        name: "Circle Packing",
+        params: {
+          attempts: { type: 'range', min: 500, max: 20000, val: 5000, label: "Spawn Attempts" },
+          minR: { type: 'range', min: 2, max: 50, val: 4, label: "Min Radius" },
+          maxR: { type: 'range', min: 10, max: 400, val: 120, label: "Max Radius" }
+        },
+        render: (ctx, w, h, p, colors) => {
+          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
+          const circles = [];
+          
+          for (let i = 0; i < p.attempts; i++) {
+            const r = randomRange(p.minR, p.maxR);
+            const x = randomRange(r, w - r);
+            const y = randomRange(r, h - r);
+            let valid = true;
+            
+            for (let j = 0; j < circles.length; j++) {
+              const c = circles[j];
+              const distSq = (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y);
+              if (distSq < (r + c.r + 2) * (r + c.r + 2)) { 
+                valid = false; break; 
+              } 
+            }
+            if (valid) circles.push({ x, y, r, color: pick(colors.slice(1)) });
+          }
+          
+          circles.forEach(c => {
+            ctx.fillStyle = c.color;
+            ctx.strokeStyle = colors[0]; // Stroke acts as negative space separation
+            ctx.lineWidth = c.r > 20 ? 3 : 1;
+            
+            ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            
+            // Add internal concentric detailing on larger circles
+            if (c.r > p.minR * 4) {
+              ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.arc(c.x, c.y, c.r * randomRange(0.4, 0.7), 0, Math.PI * 2); ctx.stroke();
+            }
+          });
+        }
+      }
       colorBands: {
         name: "Color Bands",
         params: {
