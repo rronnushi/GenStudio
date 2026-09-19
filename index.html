@@ -6,7 +6,8 @@
   <title>RRON — Generative Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <style>
     :root {
@@ -16,12 +17,12 @@
       --border: #d6d3d1;
       --panel-bg: #ffffff;
       --accent: #1c1917;
+      --danger: #ef4444;
       --font-mono: 'JetBrains Mono', monospace;
       --font-sans: 'Space Grotesk', sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-
     body {
       background-color: var(--bg);
       color: var(--fg);
@@ -29,26 +30,29 @@
       font-size: 11px;
       display: flex;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
     }
 
     .sidebar {
-      width: 340px;
-      min-width: 340px;
+      width: 360px;
+      min-width: 360px;
       background: var(--panel-bg);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       z-index: 10;
+      height: 100%;
     }
 
     .brand {
-      padding: 20px;
+      padding: 18px 20px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
+      align-items: center;
+      background: #fafaf9;
     }
 
     .brand-title {
@@ -63,7 +67,7 @@
       color: var(--fg-muted);
       font-size: 9px;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       margin-top: 4px;
     }
 
@@ -73,7 +77,7 @@
       padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
       scrollbar-width: thin;
       scrollbar-color: var(--border) transparent;
     }
@@ -90,8 +94,12 @@
       align-items: center;
     }
 
-    .control-group { display: flex; flex-direction: column; gap: 8px; }
-    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
     .label-row {
       display: flex;
       justify-content: space-between;
@@ -99,8 +107,13 @@
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      align-items: center;
     }
-    .label-row span.val { color: var(--fg); font-weight: 700; }
+
+    .label-row span.val {
+      color: var(--fg);
+      font-weight: 700;
+    }
 
     select, button {
       background: var(--panel-bg);
@@ -109,17 +122,34 @@
       font-family: var(--font-mono);
       font-size: 11px;
       padding: 7px 10px;
-      border-radius: 4px;
-      cursor: pointer;
+      border-radius: 5px;
       outline: none;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
+      cursor: pointer;
     }
-    
-    select:hover, button:hover { border-color: var(--fg-muted); background: var(--bg); }
-    
-    .btn-primary { background: var(--fg); color: var(--panel-bg); font-weight: 700; }
-    .btn-primary:hover { background: #44403c; color: #fff; }
-    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    select:hover, button:hover {
+      border-color: var(--fg-muted);
+      background: var(--bg);
+    }
+
+    .btn-primary {
+      background: var(--fg);
+      color: var(--panel-bg);
+      font-weight: 700;
+      border: 1px solid var(--fg);
+    }
+
+    .btn-primary:hover {
+      background: #44403c;
+      color: #fff;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
     input[type=range] {
       -webkit-appearance: none;
@@ -127,12 +157,21 @@
       background: transparent;
       height: 16px;
     }
+
     input[type=range]::-webkit-slider-runnable-track {
-      width: 100%; height: 2px; background: var(--border); cursor: pointer;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      cursor: pointer;
     }
+
     input[type=range]::-webkit-slider-thumb {
-      height: 12px; width: 12px; background: var(--accent);
-      border-radius: 50%; cursor: pointer; -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      -webkit-appearance: none;
       margin-top: -5px;
     }
 
@@ -142,34 +181,92 @@
       gap: 6px;
       align-items: center;
     }
+
     .swatch-wrap {
       position: relative;
-      width: 24px; height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       border: 1px solid var(--border);
       cursor: pointer;
-      overflow: hidden;
       flex-shrink: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: transform 0.15s ease;
     }
+
+    .swatch-wrap:hover {
+      transform: scale(1.08);
+    }
+
     .swatch-wrap input[type="color"] {
       position: absolute;
-      top: -10px; left: -10px;
-      width: 44px; height: 44px;
-      border: none; cursor: pointer;
+      top: -10px;
+      left: -10px;
+      width: 50px;
+      height: 50px;
+      border: none;
+      cursor: pointer;
       opacity: 0;
     }
+
+    .swatch-del {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 14px;
+      height: 14px;
+      background: var(--danger);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 9px;
+      line-height: 12px;
+      text-align: center;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    .swatch-wrap:hover .swatch-del {
+      display: flex;
+    }
+
+    .swatch-wrap.bg-swatch {
+      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--fg);
+    }
+
     .btn-add-color {
-      width: 24px; height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       border: 1px dashed var(--fg-muted);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: transparent;
-      font-size: 14px; color: var(--fg-muted); padding: 0;
+      font-size: 16px;
+      color: var(--fg-muted);
+      padding: 0;
+      transition: all 0.15s ease;
     }
-    .btn-add-color:hover { border-color: var(--fg); color: var(--fg); }
 
-    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+    .btn-add-color:hover {
+      border-color: var(--fg);
+      color: var(--fg);
+      background: rgba(0,0,0,0.03);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
 
     .viewport {
       flex: 1;
@@ -178,46 +275,94 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      padding: 40px;
+      padding: 30px;
+      background: var(--bg);
     }
 
     .canvas-wrapper {
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
       border: 1px solid var(--border);
       background: var(--panel-bg);
       display: flex;
+      box-shadow: 0 12px 40px -12px rgba(0,0,0,0.12);
+      max-width: 100%;
+      max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
     }
 
-    canvas { max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: calc(100vh - 120px);
+      max-height: calc(100dvh - 120px);
+      object-fit: contain;
+    }
 
     .aspect-bar {
       position: absolute;
-      bottom: 24px;
+      bottom: 20px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       background: var(--panel-bg);
       border: 1px solid var(--border);
       padding: 6px;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    
+
     .aspect-btn {
       font-size: 10px;
       padding: 6px 12px;
       border: none;
       background: transparent;
       color: var(--fg-muted);
+      font-weight: 500;
     }
-    .aspect-btn.active { background: var(--fg); color: var(--panel-bg); border-radius: 4px; }
 
-    @media (max-width: 800px) {
-      body { flex-direction: column; height: 100dvh; }
-      .sidebar { width: 100%; min-width: 100%; height: 55dvh; border-right: none; border-top: 1px solid var(--border); order: 2; }
-      .viewport { height: 45dvh; padding: 20px 10px 60px; order: 1; }
-      canvas { max-height: calc(45dvh - 80px); }
-      .aspect-bar { bottom: 10px; flex-wrap: wrap; justify-content: center; width: 90%; }
-      .brand { padding: 12px 20px; }
+    .aspect-btn.active {
+      background: var(--fg);
+      color: var(--panel-bg);
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+      }
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: 55vh;
+        height: 55dvh;
+        border-right: none;
+        border-top: 1px solid var(--border);
+        order: 2;
+      }
+      .viewport {
+        height: 45vh;
+        height: 45dvh;
+        padding: 12px 12px 60px;
+        order: 1;
+      }
+      canvas {
+        max-height: calc(45vh - 75px);
+        max-height: calc(45dvh - 75px);
+      }
+      .aspect-bar {
+        bottom: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 92%;
+        padding: 4px;
+      }
+      .brand {
+        padding: 10px 16px;
+      }
+      .swatch-del {
+        display: flex;
+      }
     }
   </style>
 </head>
@@ -229,129 +374,154 @@
         <div class="brand-title">RRON</div>
         <div class="brand-sub">Generative Studio</div>
       </div>
-      <button id="btnRandomize" style="padding: 4px 8px; font-size: 9px; font-weight: 700; color: #4f46e5; border-color: #4f46e5;">🎲 SURPRISE ME</button>
+      <button id="btnRandomize" style="padding: 5px 10px; font-size: 9px; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;">🎲 RANDOMIZE</button>
     </div>
 
     <div class="controls-scroll">
-      
       <div class="control-group">
-        <div class="label-row"><span>Engine Setup</span></div>
+        <div class="label-row"><span>Visual Engine</span></div>
         <select id="engineSelect"></select>
       </div>
 
-      <div id="dynamicControls" style="display:flex; flex-direction:column; gap:16px; margin-top: 4px; padding-left: 8px; border-left: 2px solid var(--border);"></div>
+      <div id="dynamicControls" style="display:flex; flex-direction:column; gap:14px; margin-top: 2px; padding-left: 10px; border-left: 2px solid var(--border);"></div>
 
       <div class="divider"></div>
 
       <div class="control-group">
         <div class="section-title">
-          <span>Palette</span>
-          <div style="display:flex; gap:6px;">
-            <button id="btnRandColors" style="padding:2px 6px; font-size:9px;">Random</button>
-            <select id="presetPalette" style="padding:2px 6px; font-size:9px;">
-              <option value="amsterdam">Amsterdam</option>
-              <option value="pastel">Pastel Geometrics</option>
-              <option value="feather">Feather Gold</option>
-              <option value="cyber">Cyber</option>
-              <option value="acid">Acid</option>
-              <option value="ultramarine">Ultramarine</option>
-              <option value="monochrome">Monochrome</option>
-              <option value="botanical">Botanical</option>
-              <option value="sunset">Sunset</option>
-              <option value="synthwave">Synthwave</option>
-              <option value="oceanic">Oceanic</option>
-            </select>
-          </div>
+          <span>Random Seed</span>
+          <button id="btnNewSeed" style="padding:2px 8px; font-size:9px;">New Variation</button>
         </div>
-        <div class="palette-container" id="paletteContainer">
-          <button class="btn-add-color" id="btnAddColor" title="Add color">+</button>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="control-group">
-        <div class="section-title">
-          <span>Global Composition</span>
-          <button id="btnResetGlobals" style="padding:2px 6px; font-size:9px;">Reset</button>
-        </div>
-        
-        <div class="label-row"><span>Scale</span><span class="val" id="valScale">100%</span></div>
-        <input type="range" id="compScale" min="10" max="500" value="100">
-
-        <div class="label-row"><span>Rotation</span><span class="val" id="valRotation">0°</span></div>
-        <input type="range" id="compRotation" min="-180" max="180" value="0">
-
-        <div class="label-row"><span>Offset X</span><span class="val" id="valOffsetX">0%</span></div>
-        <input type="range" id="compOffsetX" min="-200" max="200" value="0">
-
-        <div class="label-row"><span>Offset Y</span><span class="val" id="valOffsetY">0%</span></div>
-        <input type="range" id="compOffsetY" min="-200" max="200" value="0">
-
-        <div class="label-row" style="margin-top: 6px;"><span>Film Grain Pass</span><span class="val" id="valGrain">15%</span></div>
-        <input type="range" id="compGrain" min="0" max="100" value="15">
-      </div>
-
-      <div class="control-group" style="margin-top: 8px;">
-        <div class="label-row"><span>Seed Logic</span><span class="val" id="valSeed">1337</span></div>
+        <div class="label-row"><span>Variation Code</span><span class="val" id="valSeed">1337</span></div>
         <input type="range" id="paramSeed" min="1" max="99999" value="1337">
       </div>
 
-      <div class="btn-row" style="margin-top: auto; padding-top: 10px;">
-        <button id="btnExport" class="btn-primary" style="grid-column: span 2;">Export High-Res PNG</button>
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title">
+          <span>Palette & Color</span>
+          <div style="display:flex; gap:6px;">
+            <button id="btnRandColors" style="padding:2px 8px; font-size:9px;">Shuffle</button>
+            <select id="presetPalette" style="padding:2px 6px; font-size:9px; max-width: 96px;">
+              <option value="amsterdam">Amsterdam</option>
+              <option value="pastel">Pastel</option>
+              <option value="cyber">Cyberpunk</option>
+              <option value="acid">Acid</option>
+              <option value="ultramarine">Ultramarine</option>
+              <option value="monochrome">Monochrome</option>
+              <option value="sunset">Sunset</option>
+              <option value="neon">Neon</option>
+              <option value="bauhaus">Bauhaus</option>
+              <option value="vintage">Vintage</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="label-row" style="margin-bottom:-2px;">
+          <span>Color Palette (Up to 20)</span>
+          <span id="paletteCount" style="color:var(--fg-muted); font-size:9px;">6 / 20</span>
+        </div>
+        <div class="palette-container" id="paletteContainer">
+          <button class="btn-add-color" id="btnAddColor" title="Add new color">+</button>
+        </div>
+
+        <div class="label-row" style="margin-top:10px; margin-bottom:-2px;"><span>Canvas Background</span></div>
+        <div class="swatch-wrap bg-swatch" id="bgSwatchWrap">
+          <input type="color" id="bgColorPicker" title="Background Color" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title">
+          <span>Composition & Framing</span>
+          <button id="btnResetGlobals" style="padding:2px 8px; font-size:9px;">Reset</button>
+        </div>
+
+        <div class="label-row"><span>Mirror Reflection</span></div>
+        <select id="compSymmetry">
+          <option value="None">None (Original Layout)</option>
+          <option value="Horizontal">Horizontal Mirror (Left / Right)</option>
+          <option value="Vertical">Vertical Mirror (Top / Bottom)</option>
+          <option value="Quad">4-Corner Kaleidoscope Mirror</option>
+        </select>
+
+        <div class="label-row" style="margin-top: 8px;"><span>Outer Padding</span><span class="val" id="valMargin">0px</span></div>
+        <input type="range" id="compMargin" min="0" max="300" value="0">
+
+        <div class="label-row"><span>Zoom</span><span class="val" id="valZoom">100%</span></div>
+        <input type="range" id="compZoom" min="10" max="300" value="100">
+
+        <div class="label-row"><span>Rotate</span><span class="val" id="valRotation">0°</span></div>
+        <input type="range" id="compRotation" min="-180" max="180" value="0">
+
+        <div class="label-row"><span>Shift Left/Right</span><span class="val" id="valOffsetX">0%</span></div>
+        <input type="range" id="compOffsetX" min="-200" max="200" value="0">
+
+        <div class="label-row"><span>Shift Up/Down</span><span class="val" id="valOffsetY">0%</span></div>
+        <input type="range" id="compOffsetY" min="-200" max="200" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Film Texture Grain</span><span class="val" id="valGrain">15%</span></div>
+        <input type="range" id="compGrain" min="0" max="100" value="15">
+      </div>
+
+      <div class="btn-row" style="margin-top: auto; padding-top: 8px;">
+        <button id="btnExport" class="btn-primary" style="grid-column: span 2; padding: 10px;">Download High-Res PNG</button>
       </div>
     </div>
   </aside>
 
   <main class="viewport">
-    <div class="canvas-wrapper">
-      <canvas id="artCanvas"></canvas>
-    </div>
-
+    <div class="canvas-wrapper"><canvas id="artCanvas"></canvas></div>
     <div class="aspect-bar">
       <button class="aspect-btn active" data-w="1080" data-h="1920">9:16 Story</button>
       <button class="aspect-btn" data-w="1400" data-h="1400">1:1 Square</button>
       <button class="aspect-btn" data-w="1600" data-h="1200">4:3 Print</button>
       <button class="aspect-btn" data-w="1920" data-h="1080">16:9 Screen</button>
+      <button class="aspect-btn" data-w="2400" data-h="3600">Poster Print</button>
     </div>
   </main>
 
   <script>
-    const canvas = document.getElementById("artCanvas");
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    
+    const canvas = document.getElementById("artCanvas"), ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const renderCanvas = document.createElement("canvas"), renderCtx = renderCanvas.getContext("2d", { willReadFrequently: true });
+
     const PALETTES = {
-      amsterdam: ['#1e293b', '#dc2626', '#f87171', '#fef08a', '#e2e8f0'],
-      pastel: ['#dce4eb', '#e6a49c', '#8ab89f', '#f2d174', '#798bca', '#c98165'],
-      feather: ['#161514', '#3d3830', '#8b7c65', '#d4c7b2', '#ffffff'], 
-      cyber: ['#0d0221', '#ff0055', '#00f0ff', '#2d006b', '#fffa65', '#ffffff'],
-      acid: ['#0d0c1d', '#b4f000', '#5e17eb', '#e0e2db', '#9b5de5'],
-      ultramarine: ['#000000', '#0011ff', '#ffffff', '#264bff', '#8ca1ff'],
-      monochrome: ['#121212', '#f4f1ea', '#888888', '#2b2b2b', '#d3cfc7'],
-      botanical: ['#1c2826', '#4a6d58', '#8cb369', '#f4e285', '#f4a259'],
-      sunset: ['#2b1055', '#751a3d', '#b44346', '#d88653', '#f0ca68'],
-      synthwave: ['#241734', '#2e2157', '#fd3a69', '#fecd51', '#4bf2f6'],
-      earth: ['#3a3126', '#594a38', '#82715c', '#b3a692', '#e1d9cc'],
-      oceanic: ['#03045e', '#023e8a', '#0077b6', '#0096c7', '#48cae4', '#90e0ef']
+      amsterdam: ['#1e293b', '#dc2626', '#f87171', '#fef08a', '#e2e8f0', '#3b82f6', '#10b981'],
+      pastel: ['#dce4eb', '#e6a49c', '#8ab89f', '#f2d174', '#798bca', '#c98165', '#a3c1ad'],
+      cyber: ['#0d0221', '#ff0055', '#00f0ff', '#2d006b', '#fffa65', '#7928ca', '#00ffcc'],
+      acid: ['#0d0c1d', '#b4f000', '#5e17eb', '#e0e2db', '#9b5de5', '#f15bb5', '#fee440'],
+      ultramarine: ['#f5f5f5', '#0011ff', '#000000', '#264bff', '#8ca1ff', '#1e1b4b', '#38bdf8'],
+      monochrome: ['#121212', '#f4f1ea', '#888888', '#2b2b2b', '#d3cfc7', '#525252', '#a3a3a3'],
+      sunset: ['#2b1055', '#751a3d', '#b44346', '#d88653', '#f0ca68', '#ff758c', '#ff7eb3'],
+      neon: ['#050505', '#ff007f', '#00f9ff', '#7000ff', '#ffea00', '#39ff14', '#ff3131'],
+      bauhaus: ['#f4f1ea', '#d93829', '#2a5b84', '#e8a933', '#1a1a1a', '#5c768d', '#b22222'],
+      vintage: ['#e8dcc4', '#8b4b45', '#496055', '#d19c4c', '#333230', '#6b4226', '#556b2f']
     };
 
-    let currentColors = [...PALETTES.amsterdam];
+    let bgColor = PALETTES.amsterdam[0];
+    let currentColors = PALETTES.amsterdam.slice(1);
 
     function hslToHex(h, s, l) {
-      l /= 100; const a = s * Math.min(l, 1 - l) / 100;
-      const f = n => { const k = (n + h / 30) % 12; const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); return Math.round(255 * color).toString(16).padStart(2, '0'); };
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = n => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
       return `#${f(0)}${f(8)}${f(4)}`;
     }
 
     function generateRandomPalette() {
-      const count = Math.floor(Math.random() * 5) + 4; 
+      const count = Math.floor(Math.random() * 6) + 5;
       const baseHue = Math.floor(Math.random() * 360);
       const newColors = [];
-      const bgLightness = Math.random() > 0.5 ? Math.random() * 10 + 5 : Math.random() * 10 + 88;
-      newColors.push(hslToHex(baseHue, Math.random() * 20, bgLightness));
-      for (let i = 1; i < count; i++) {
-        const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 60 - 30)) % 360;
-        newColors.push(hslToHex(hueShift, Math.floor(Math.random() * 80 + 20), Math.floor(Math.random() * 70 + 15)));
+      for (let i = 0; i < count; i++) {
+        const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 40 - 20)) % 360;
+        newColors.push(hslToHex(hueShift, Math.floor(Math.random() * 70 + 30), Math.floor(Math.random() * 60 + 20)));
       }
       return newColors;
     }
@@ -365,9 +535,8 @@
     }
     function randomRange(min, max) { return min + random() * (max - min); }
     function pick(arr) { return arr[Math.floor(random() * arr.length)]; }
-
     function hash(x, y) {
-      let h = globalSeed + x * 374761393 + y * 668265263;
+      let h = globalSeed + (x | 0) * 374761393 + (y | 0) * 668265263;
       h = Math.imul(h ^ (h >>> 13), 1274126177);
       return (h ^ (h >>> 16)) / 4294967296;
     }
@@ -377,913 +546,2090 @@
       const ix = Math.floor(x), iy = Math.floor(y);
       const fx = x - ix, fy = y - iy;
       const ux = smoothstep(fx), uy = smoothstep(fy);
-      return lerp(lerp(hash(ix, iy), hash(ix+1, iy), ux), lerp(hash(ix, iy+1), hash(ix+1, iy+1), ux), uy);
+      return lerp(lerp(hash(ix, iy), hash(ix + 1, iy), ux), lerp(hash(ix, iy + 1), hash(ix + 1, iy + 1), ux), uy);
     }
 
-    // --- ENGINES (ALL 18 GENERATORS) ---
+    function runShader(ctx, w, h, fsSource, uniforms) {
+      if (!window._glCanvas) window._glCanvas = document.createElement('canvas');
+      const canvas = window._glCanvas;
+      canvas.width = w; canvas.height = h;
+      const gl = canvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });
+      if (!gl) return;
+      const vs = `attribute vec2 pos; void main() { gl_Position = vec4(pos, 0.0, 1.0); }`;
+      const prog = gl.createProgram();
+      [vs, fsSource].forEach((src, i) => {
+        const s = gl.createShader(i ? gl.FRAGMENT_SHADER : gl.VERTEX_SHADER);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        gl.attachShader(prog, s);
+      });
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "pos");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(gl.getUniformLocation(prog, "res"), w, h);
+      Object.entries(uniforms).forEach(([k, v]) => {
+        const l = gl.getUniformLocation(prog, k);
+        if (Array.isArray(v)) {
+          if (v.length === 2) gl.uniform2f(l, v[0], v[1]);
+          else if (v.length === 3) gl.uniform3f(l, v[0], v[1], v[2]);
+        } else {
+          gl.uniform1f(l, v);
+        }
+      });
+      gl.viewport(0, 0, w, h);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      ctx.drawImage(canvas, 0, 0);
+    }
+
     const ENGINES = {
-      blocks: {
-        name: "Brutalist Blocks",
+      gradients: {
+        name: "Color Gradients", group: "Foundations",
         params: {
-          depth: { type: 'range', min: 1, max: 12, val: 6, label: "Partition Depth" },
-          padding: { type: 'range', min: 0, max: 150, val: 10, label: "Block Padding" },
-          hatchChance: { type: 'range', min: 0, max: 100, val: 30, label: "Hatching Pattern %" }
+          style: { type: 'select', options: ['Linear', 'Radial', 'Conic'], val: 'Linear', label: "Style" },
+          angle: { type: 'range', min: 0, max: 360, val: 45, label: "Angle" },
+          steps: { type: 'range', min: 2, max: 255, val: 255, label: "Color Bands" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const rects = [];
-          function splitRect(x, y, rw, rh, currentDepth) {
-            if (currentDepth === 0 || (currentDepth < p.depth && random() > 0.85)) { rects.push({x, y, w: rw, h: rh}); return; }
-            const splitRatio = randomRange(0.2, 0.8);
-            if (rw > rh) { 
-              const split = rw * splitRatio; splitRect(x, y, split, rh, currentDepth - 1); splitRect(x + split, y, rw - split, rh, currentDepth - 1);
-            } else { 
-              const split = rh * splitRatio; splitRect(x, y, rw, split, currentDepth - 1); splitRect(x, y + split, rw, rh - split, currentDepth - 1);
+        render: (c, w, h, p, cols) => {
+          const a = p.angle * Math.PI / 180, cx = w / 2, cy = h / 2, d = Math.hypot(w, h);
+          let g = p.style === 'Linear' ? c.createLinearGradient(cx - Math.cos(a)*d/2, cy - Math.sin(a)*d/2, cx + Math.cos(a)*d/2, cy + Math.sin(a)*d/2) :
+                  (p.style === 'Radial' ? c.createRadialGradient(cx, cy, 0, cx, cy, d / 1.5) : c.createConicGradient(a, cx, cy));
+          [bgColor, ...cols].forEach((col, i, arr) => g.addColorStop(i / (arr.length - 1 || 1), col));
+          c.fillStyle = g; c.fillRect(0, 0, w, h);
+          if (p.steps < 255) {
+            const img = c.getImageData(0, 0, w, h), dt = img.data, f = 255 / p.steps;
+            for (let i = 0; i < dt.length; i += 4) {
+              dt[i] = Math.round(dt[i] / f) * f;
+              dt[i+1] = Math.round(dt[i+1] / f) * f;
+              dt[i+2] = Math.round(dt[i+2] / f) * f;
             }
-          }
-          splitRect(0, 0, w, h, p.depth);
-
-          rects.forEach(rect => {
-            const pad = p.padding, bx = rect.x + pad, by = rect.y + pad, bw = rect.w - pad*2, bh = rect.h - pad*2;
-            if (bw <= 0 || bh <= 0) return;
-            const col1 = pick(colors);
-
-            ctx.fillStyle = colors[0]; ctx.globalAlpha = 0.5; ctx.fillRect(bx + pad/2, by + pad/2, bw, bh); ctx.globalAlpha = 1.0;
-
-            if (random() * 100 < p.hatchChance) {
-              const col2 = pick(colors), stripeW = randomRange(2, 20);
-              ctx.save(); ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
-              ctx.fillStyle = col1; ctx.fillRect(bx, by, bw, bh);
-              ctx.fillStyle = col2;
-              if (random() > 0.5) for(let x = bx; x < bx + bw; x += stripeW * 2) ctx.fillRect(x, by, stripeW, bh);
-              else for(let y = by; y < by + bh; y += stripeW * 2) ctx.fillRect(bx, y, bw, stripeW);
-              ctx.restore();
-            } else {
-              ctx.fillStyle = col1; ctx.strokeStyle = col1; ctx.lineWidth = 1;
-              ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx, by, bw, bh); // Pixel fix
-            }
-            ctx.strokeStyle = colors[0]; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
-
-            if (random() > 0.7) {
-              ctx.fillStyle = pick(colors); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.arc(bx + bw/2, by + bh/2, Math.min(bw, bh) * randomRange(0.1, 0.4), 0, Math.PI*2);
-              ctx.fill(); ctx.stroke();
-            }
-          });
-        }
-      },
-
-      geometricGrid: {
-        name: "Geometric Grid",
-        params: {
-          scale: { type: 'range', min: 10, max: 500, val: 80, label: "Cell Size" },
-          shadow: { type: 'range', min: 0, max: 100, val: 15, label: "Shadow Depth" },
-          shapes: { type: 'select', options: ['all', 'squares', 'circles', 'mixed'], val: 'all', label: "Shape Mix" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const s = p.scale, cols = Math.ceil(w / s) + 1, rows = Math.ceil(h / s) + 1;
-          
-          ctx.shadowColor = 'rgba(0,0,0,0.2)'; ctx.shadowBlur = p.shadow; ctx.shadowOffsetX = p.shadow * 0.5; ctx.shadowOffsetY = p.shadow * 0.5;
-
-          for (let y = -1; y < rows; y++) {
-            for (let x = -1; x < cols; x++) {
-              let cx = x * s, cy = y * s;
-              ctx.fillStyle = pick(colors); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
-              let type = Math.floor(random() * 4);
-              if (p.shapes === 'squares') type = 0; if (p.shapes === 'circles') type = 1; if (p.shapes === 'mixed') type = Math.floor(random() * 2);
-
-              ctx.beginPath();
-              if (type === 0) ctx.rect(cx, cy, s+1, s+1); // +1 fixes subpixel lines
-              else if (type === 1) ctx.arc(cx + s/2, cy + s/2, s/2 + 0.5, 0, Math.PI*2);
-              else if (type === 2) { ctx.moveTo(cx, cy+s+1); ctx.lineTo(cx+s/2, cy); ctx.lineTo(cx+s+1, cy+s+1); } 
-              else ctx.arc(cx + s/2, cy + s/2, s/2 + 0.5, 0, Math.PI);
-              ctx.fill(); ctx.stroke();
-            }
-          }
-          ctx.shadowColor = 'transparent';
-        }
-      },
-      fluidMarble: {
-        name: "Fluid Marble",
-        params: {
-          scale: { type: 'range', min: 10, max: 1000, val: 300, label: "Noise Scale" },
-          warp: { type: 'range', min: 0, max: 200, val: 60, label: "Domain Warp" },
-          banding: { type: 'range', min: 1, max: 30, val: 8, label: "Color Bands" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          // Utilizing offscreen canvas for rapid pixel manipulation
-          const offCanvas = document.createElement('canvas'); offCanvas.width = w; offCanvas.height = h;
-          const oCtx = offCanvas.getContext('2d'); const imgData = oCtx.createImageData(w, h); const data = imgData.data;
-          
-          const ns = p.scale / 10000;
-          const rgbColors = colors.map(hex => { const num = parseInt(hex.slice(1), 16); return [num >> 16, (num >> 8) & 255, num & 255]; });
-          
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              // Domain Warping: offset the lookup coordinates with noise
-              let wx = x + noise2D(x * ns, y * ns) * p.warp * 10;
-              let wy = y + noise2D(x * ns + 100, y * ns + 100) * p.warp * 10;
-              
-              let n = noise2D(wx * ns, wy * ns);
-              n = (n + 1) / 2; // Normalize to 0-1
-              
-              let bandFloat = n * p.banding;
-              let colorIdx = Math.floor(bandFloat) % colors.length;
-              let nextIdx = (colorIdx + 1) % colors.length;
-              let frac = bandFloat - Math.floor(bandFloat);
-              
-              // Smoothstep interpolation for buttery gradients
-              let f = frac * frac * (3 - 2 * frac);
-              const c1 = rgbColors[colorIdx]; 
-              const c2 = rgbColors[nextIdx];
-              
-              const idx = (y * w + x) * 4;
-              data[idx] = c1[0] + (c2[0] - c1[0]) * f;
-              data[idx+1] = c1[1] + (c2[1] - c1[1]) * f;
-              data[idx+2] = c1[2] + (c2[2] - c1[2]) * f;
-              data[idx+3] = 255;
-            }
-          }
-          oCtx.putImageData(imgData, 0, 0); ctx.drawImage(offCanvas, 0, 0);
-        }
-      },
-
-      truchetGrid: {
-        name: "Truchet Tiles",
-        params: {
-          gridSize: { type: 'range', min: 10, max: 200, val: 50, label: "Cell Size" },
-          thickness: { type: 'range', min: 1, max: 50, val: 12, label: "Stroke Weight" },
-          style: { type: 'select', options: ['arcs', 'diagonals', 'mixed'], val: 'arcs', label: "Tile Style" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.lineCap = 'round';
-          const s = p.gridSize;
-          
-          for (let y = 0; y < h; y += s) {
-            for (let x = 0; x < w; x += s) {
-              ctx.strokeStyle = pick(colors.slice(1));
-              ctx.lineWidth = p.thickness;
-              
-              const type = p.style === 'mixed' ? (random() > 0.5 ? 'arcs' : 'diagonals') : p.style;
-              const flip = random() > 0.5;
-              
-              ctx.beginPath();
-              if (type === 'diagonals') {
-                if (flip) { ctx.moveTo(x, y); ctx.lineTo(x + s, y + s); }
-                else { ctx.moveTo(x + s, y); ctx.lineTo(x, y + s); }
-              } else {
-                if (flip) {
-                  ctx.arc(x, y, s / 2, 0, Math.PI / 2); ctx.stroke(); 
-                  ctx.beginPath(); ctx.strokeStyle = pick(colors.slice(1));
-                  ctx.arc(x + s, y + s, s / 2, Math.PI, Math.PI * 1.5);
-                } else {
-                  ctx.arc(x + s, y, s / 2, Math.PI / 2, Math.PI); ctx.stroke(); 
-                  ctx.beginPath(); ctx.strokeStyle = pick(colors.slice(1));
-                  ctx.arc(x, y + s, s / 2, Math.PI * 1.5, Math.PI * 2);
-                }
-              }
-              ctx.stroke();
-            }
+            c.putImageData(img, 0, 0);
           }
         }
       },
 
-      neuralConstellation: {
-        name: "Constellation Web",
-        params: {
-          nodes: { type: 'range', min: 50, max: 3000, val: 400, label: "Node Count" },
-          connectDist: { type: 'range', min: 10, max: 500, val: 100, label: "Link Radius" },
-          size: { type: 'range', min: 1, max: 30, val: 5, label: "Node Scale" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const pts = [];
-          
-          for (let i = 0; i < p.nodes; i++) {
-            pts.push({ 
-              x: randomRange(-50, w + 50), 
-              y: randomRange(-50, h + 50), 
-              r: randomRange(1, p.size), 
-              c: pick(colors.slice(1)) 
-            });
-          }
-          
-          ctx.lineCap = 'round';
-          for (let i = 0; i < pts.length; i++) {
-            for (let j = i + 1; j < pts.length; j++) {
-              const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
-              const distSq = dx * dx + dy * dy;
-              const maxDistSq = p.connectDist * p.connectDist;
-              
-              if (distSq < maxDistSq) {
-                const dist = Math.sqrt(distSq);
-                const alpha = Math.pow(1 - (dist / p.connectDist), 2); // Exponential fade
-                ctx.strokeStyle = pts[i].c;
-                ctx.globalAlpha = alpha * 0.8;
-                ctx.lineWidth = randomRange(0.2, 1.5);
-                ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke();
-              }
-            }
-          }
-          
-          ctx.globalAlpha = 1.0;
-          pts.forEach(pt => {
-            ctx.fillStyle = pt.c;
-            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); ctx.fill();
-          });
-        }
-      },
-
-      organicSpores: {
-        name: "Circle Packing",
-        params: {
-          attempts: { type: 'range', min: 500, max: 20000, val: 5000, label: "Spawn Attempts" },
-          minR: { type: 'range', min: 2, max: 50, val: 4, label: "Min Radius" },
-          maxR: { type: 'range', min: 10, max: 400, val: 120, label: "Max Radius" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const circles = [];
-          
-          for (let i = 0; i < p.attempts; i++) {
-            const r = randomRange(p.minR, p.maxR);
-            const x = randomRange(r, w - r);
-            const y = randomRange(r, h - r);
-            let valid = true;
-            
-            for (let j = 0; j < circles.length; j++) {
-              const c = circles[j];
-              const distSq = (x - c.x) * (x - c.x) + (y - c.y) * (y - c.y);
-              if (distSq < (r + c.r + 2) * (r + c.r + 2)) { 
-                valid = false; break; 
-              } 
-            }
-            if (valid) circles.push({ x, y, r, color: pick(colors.slice(1)) });
-          }
-          
-          circles.forEach(c => {
-            ctx.fillStyle = c.color;
-            ctx.strokeStyle = colors[0]; // Stroke acts as negative space separation
-            ctx.lineWidth = c.r > 20 ? 3 : 1;
-            
-            ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-            ctx.fill(); ctx.stroke();
-            
-            // Add internal concentric detailing on larger circles
-            if (c.r > p.minR * 4) {
-              ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.arc(c.x, c.y, c.r * randomRange(0.4, 0.7), 0, Math.PI * 2); ctx.stroke();
-            }
-          });
-        }
-      },
       colorBands: {
-        name: "Color Bands",
+        name: "Stripe Collage", group: "Foundations",
         params: {
-          cols: { type: 'range', min: 1, max: 200, val: 4, label: "Vertical Columns" },
-          density: { type: 'range', min: 1, max: 1000, val: 60, label: "Row Density" }
+          div: { type: 'range', min: 1, max: 200, val: 8, label: "Sections" },
+          den: { type: 'range', min: 1, max: 1000, val: 60, label: "Stripe Density" },
+          or: { type: 'select', options: ['Vertical', 'Horizontal'], val: 'Vertical', label: "Direction" },
+          gp: { type: 'range', min: 0, max: 50, val: 0, label: "Spacing Gap" },
+          ch: { type: 'range', min: 0, max: 100, val: 0, label: "Edge Bleed" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const colW = w / p.cols;
-          for (let c = 0; c < p.cols; c++) {
-            let y = 0;
-            while (y < h) {
-              let dh = randomRange(1, (2000 / p.density));
-              ctx.fillStyle = pick(colors);
-              ctx.fillRect(c * colW - 0.5, y - 0.5, colW + 1.5, dh + 1.5); // Overshoot for edge bleed
-              y += dh;
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          if (p.or === 'Vertical') {
+            let cw = w / p.div;
+            for (let i = 0; i < p.div; i++) {
+              let y = 0;
+              while (y < h) {
+                let dh = randomRange(1, 2000 / p.den);
+                c.fillStyle = pick(cols);
+                let o = randomRange(-p.ch, p.ch);
+                c.fillRect(i * cw - 0.5 + o + p.gp / 2, y - 0.5 + p.gp / 2, cw + 1.5 + Math.abs(o) - p.gp, dh + 1.5 - p.gp);
+                y += dh;
+              }
+            }
+          } else {
+            let ch = h / p.div;
+            for (let i = 0; i < p.div; i++) {
+              let x = 0;
+              while (x < w) {
+                let dw = randomRange(1, 2000 / p.den);
+                c.fillStyle = pick(cols);
+                let o = randomRange(-p.ch, p.ch);
+                c.fillRect(x - 0.5 + p.gp / 2, i * ch - 0.5 + o + p.gp / 2, dw + 1.5 - p.gp, ch + 1.5 + Math.abs(o) - p.gp);
+                x += dw;
+              }
             }
           }
         }
       },
 
-      vortexBlocks: {
-        name: "Vortex Blocks",
+      organicThreeJS: {
+        name: "3D Ribbon Knot", group: "3D Forms",
         params: {
-          density: { type: 'range', min: 10, max: 5000, val: 200, label: "Spiral Density" },
-          scale: { type: 'range', min: 1, max: 500, val: 50, label: "Noise Field Scale" },
-          length: { type: 'range', min: 5, max: 300, val: 30, label: "Block Size" }
+          twist: { type: 'range', min: 1, max: 20, val: 5, label: "Knot Coils" },
+          density: { type: 'range', min: 50, max: 1200, val: 400, label: "Smoothness" },
+          scale: { type: 'range', min: 10, max: 300, val: 120, label: "Size" },
+          tube: { type: 'range', min: 1, max: 100, val: 40, label: "Thickness" },
+          rx: { type: 'range', min: 0, max: 360, val: 45, label: "Tilt X" },
+          ry: { type: 'range', min: 0, max: 360, val: 45, label: "Tilt Y" },
+          rz: { type: 'range', min: 0, max: 360, val: 0, label: "Tilt Z" },
+          wire: { type: 'select', options: ['Yes', 'No'], val: 'Yes', label: "Outline Wireframe" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const ns = p.scale / 10000;
-          for (let i = 0; i < p.density; i++) {
-             let x = random() * w, y = random() * h;
-             const col = pick(colors);
-             for(let s=0; s<40; s++) {
-                let n = noise2D(x * ns, y * ns) * Math.PI * 4;
-                x += Math.cos(n) * (p.length * 1.5); y += Math.sin(n) * (p.length * 1.5);
-                ctx.save(); ctx.translate(x, y); ctx.rotate(n);
-                ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1;
-                ctx.fillRect(0, -p.length/4, p.length, p.length/2);
-                ctx.strokeRect(0, -p.length/4, p.length, p.length/2);
-                ctx.restore();
-             }
-          }
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          if (!window.THREE) return;
+          if (!window._thR) window._thR = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+          window._thR.setSize(w, h);
+          window._thR.setClearColor(0, 0);
+          const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, w / h, 0.1, 3000);
+          cam.position.z = 400 + Math.max(w, h) * 0.25;
+          const tc = document.createElement('canvas'); tc.width = 256; tc.height = 1;
+          const tx = tc.getContext('2d'), grad = tx.createLinearGradient(0, 0, 256, 0);
+          cols.forEach((cl, i) => grad.addColorStop(i / (cols.length - 1 || 1), cl));
+          tx.fillStyle = grad; tx.fillRect(0, 0, 256, 1);
+          const geo = new THREE.TorusKnotGeometry(p.scale * 1.5, p.tube, p.density, 16, p.twist, 3);
+          const mat = new THREE.MeshBasicMaterial({
+            map: new THREE.CanvasTexture(tc),
+            wireframe: p.wire === 'Yes',
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending
+          });
+          const m = new THREE.Mesh(geo, mat);
+          m.rotation.set(p.rx * Math.PI / 180, p.ry * Math.PI / 180, p.rz * Math.PI / 180);
+          sc.add(m);
+          window._thR.render(sc, cam);
+          c.drawImage(window._thR.domElement, 0, 0);
+          geo.dispose(); mat.dispose();
         }
       },
 
-      flowSegments: {
-        name: "Flow Segments",
+      wireTerrain: {
+        name: "3D Wireframe Landscape", group: "3D Forms",
         params: {
-          density: { type: 'range', min: 10, max: 10000, val: 500, label: "Path Count" },
-          thickness: { type: 'range', min: 1, max: 200, val: 12, label: "Line Weight" },
-          scale: { type: 'range', min: 1, max: 500, val: 60, label: "Curve Scale" }
+          sc: { type: 'range', min: 10, max: 100, val: 40, label: "Grid Density" },
+          ht: { type: 'range', min: 10, max: 500, val: 200, label: "Mountain Height" },
+          wp: { type: 'range', min: 10, max: 500, val: 200, label: "Terrain Curvature" },
+          lw: { type: 'range', min: 1, max: 10, val: 1, label: "Line Thickness" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          const ns = p.scale / 10000;
-          for (let i = 0; i < p.density; i++) {
-            let x = random() * w, y = random() * h;
-            ctx.beginPath(); ctx.moveTo(x, y);
-            ctx.strokeStyle = pick(colors); ctx.lineWidth = p.thickness * randomRange(0.5, 1.5);
-            let len = randomRange(10, 200);
-            for(let s=0; s<len; s++) {
-               let n = noise2D(x * ns, y * ns) * Math.PI * 2;
-               x += Math.cos(n) * 2.5; y += Math.sin(n) * 2.5; ctx.lineTo(x, y);
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          c.lineWidth = p.lw;
+          const pts = [];
+          for (let y = 0; y < h * 1.5; y += p.sc) {
+            let r = [];
+            for (let x = 0; x <= w; x += p.sc) {
+              r.push({ x, y: y - noise2D(x / p.wp, y / p.wp) * p.ht });
             }
-            ctx.stroke();
+            pts.push(r);
           }
-        }
-      },
-
-      polarPoints: {
-        name: "Polar Points",
-        params: {
-          density: { type: 'range', min: 100, max: 50000, val: 4000, label: "Point Density" },
-          amp: { type: 'range', min: 1, max: 1000, val: 120, label: "Wave Amplitude" },
-          freq: { type: 'range', min: 1, max: 200, val: 10, label: "Wave Frequency" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const cols = Math.floor(Math.sqrt(p.density)), rows = cols;
-          const spacingX = w / cols, spacingY = h / rows, f = p.freq / 1000;
-          for(let r=0; r<=rows; r++) {
-            for(let c=0; c<=cols; c++) {
-              let x = c * spacingX, y = r * spacingY;
-              let nx = x + Math.sin(y * f) * p.amp; let ny = y + Math.cos(x * f) * p.amp;
-              ctx.beginPath(); ctx.arc(nx, ny, randomRange(1, Math.max(2, p.amp/10)), 0, Math.PI * 2);
-              ctx.fillStyle = pick(colors); ctx.fill();
+          for (let y = 0; y < pts.length - 1; y++) {
+            for (let x = 0; x < pts[y].length - 1; x++) {
+              c.strokeStyle = cols[(x + y) % cols.length];
+              c.beginPath();
+              c.moveTo(pts[y][x].x, pts[y][x].y);
+              c.lineTo(pts[y][x + 1].x, pts[y][x + 1].y);
+              c.lineTo(pts[y + 1][x].x, pts[y + 1][x].y);
+              c.stroke();
             }
           }
-        }
-      },
-
-      organicFlow: {
-        name: "Organic Feathers",
-        params: {
-          density: { type: 'range', min: 100, max: 30000, val: 4000, label: "Strand Density" },
-          scale: { type: 'range', min: 1, max: 500, val: 40, label: "Field Frequency" },
-          length: { type: 'range', min: 1, max: 1000, val: 120, label: "Strand Length" },
-          thickness: { type: 'range', min: 0.1, max: 50, val: 3, label: "Stroke Weight" },
-          curve: { type: 'range', min: 0.1, max: 20, val: 5, label: "Curve Tightness" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          const palette = colors.slice(1), noiseScale = p.scale / 10000, curveMult = p.curve * Math.PI;
-
-          for (let i = 0; i < p.density; i++) {
-            let x = random() * w, y = random() * h;
-            ctx.beginPath(); ctx.moveTo(x, y);
-            const col = pick(palette), alpha = randomRange(0.1, 0.9);
-            ctx.strokeStyle = `${col}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
-            ctx.lineWidth = randomRange(0.1, p.thickness);
-            const actualLength = p.length * randomRange(0.5, 1.5);
-
-            for (let s = 0; s < actualLength; s++) {
-              let n1 = noise2D(x * noiseScale, y * noiseScale);
-              let n2 = noise2D(x * noiseScale * 2.5, y * noiseScale * 2.5) * 0.5;
-              let angle = (n1 + n2) * curveMult;
-              x += Math.cos(angle) * 1.5; y += Math.sin(angle) * 1.5; ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-          }
-        }
-      },
-
-      kaleidoscope: {
-        name: "Kaleidoscope",
-        params: {
-          folds: { type: 'range', min: 2, max: 64, val: 12, label: "Symmetry Folds" },
-          density: { type: 'range', min: 10, max: 5000, val: 600, label: "Fill Density" },
-          thickness: { type: 'range', min: 1, max: 100, val: 3, label: "Line Weight" },
-          style: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Geometry Style" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          const folds = p.folds % 2 !== 0 ? p.folds + 1 : p.folds, wedgeAngle = (Math.PI * 2) / folds;
-          const radius = Math.sqrt(w * w + h * h) * 1.2;
-          const sliceBuf = document.createElement('canvas'); sliceBuf.width = radius; sliceBuf.height = radius;
-          const sctx = sliceBuf.getContext('2d');
-          sctx.fillStyle = colors[0]; sctx.fillRect(0, 0, radius, radius); sctx.lineCap = 'round'; sctx.lineJoin = 'round';
-
-          for (let i = 0; i < p.density; i++) {
-            sctx.fillStyle = pick(colors); sctx.strokeStyle = pick(colors);
-            sctx.lineWidth = randomRange(1, p.thickness); sctx.globalAlpha = randomRange(0.4, 1.0);
-            const radDist = randomRange(0, radius), theta = randomRange(-0.1, wedgeAngle + 0.1); 
-            const px = Math.cos(theta) * radDist, py = Math.sin(theta) * radDist, sz = randomRange(5, p.thickness * 15);
-
-            sctx.save(); sctx.translate(px, py); sctx.rotate(random() * Math.PI * 2);
-            if (p.style === 'geometric') {
-              if (random() > 0.5) sctx.fillRect(-sz/2, -sz/2, sz, sz); else { sctx.beginPath(); sctx.arc(0, 0, sz/2, 0, Math.PI*2); sctx.fill(); }
-              if (random() > 0.5) sctx.strokeRect(-sz/2, -sz/2, sz*1.4, sz*1.4);
-            } else if (p.style === 'organic') {
-              sctx.beginPath(); sctx.moveTo(-sz, 0); sctx.quadraticCurveTo(0, sz*1.5, sz, 0); sctx.quadraticCurveTo(0, -sz*0.5, -sz, 0); sctx.fill();
-              if (random() > 0.3) { sctx.beginPath(); sctx.moveTo(0,0); sctx.lineTo(sz*2, randomRange(-sz, sz)); sctx.stroke(); }
-            } else if (p.style === 'orbital') {
-              sctx.beginPath(); sctx.arc(0, 0, sz, 0, randomRange(Math.PI/2, Math.PI*1.5)); sctx.stroke();
-              if(random() > 0.8) { sctx.beginPath(); sctx.arc(sz, 0, sz/4, 0, Math.PI*2); sctx.fill(); }
-            }
-            sctx.restore();
-          }
-          ctx.translate(w / 2, h / 2);
-          for (let f = 0; f < folds; f++) {
-            ctx.save(); ctx.rotate(f * wedgeAngle);
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, radius, -0.01, wedgeAngle + 0.01); ctx.clip();
-            if (f % 2 === 1) { ctx.scale(1, -1); ctx.rotate(-wedgeAngle); }
-            ctx.drawImage(sliceBuf, 0, 0); ctx.restore();
-          }
-          ctx.translate(-w / 2, -h / 2);
         }
       },
 
       topography: {
-        name: "Topography",
+        name: "Topography Map", group: "Natural Forms",
         params: {
-          scale: { type: 'range', min: 1, max: 1000, val: 120, label: "Noise Frequency" },
-          bands: { type: 'range', min: 2, max: 100, val: 16, label: "Elevation Bands" },
-          lineWeight: { type: 'range', min: 0, max: 50, val: 5, label: "Contour Thickness" }
+          scale: { type: 'range', min: 10, max: 600, val: 140, label: "Detail Zoom" },
+          bands: { type: 'range', min: 2, max: 64, val: 20, label: "Elevation Levels" },
+          lineWeight: { type: 'range', min: 0, max: 40, val: 8, label: "Contour Lines" }
         },
-        render: (ctx, w, h, p, colors) => {
-          const offCanvas = document.createElement('canvas'); offCanvas.width = w; offCanvas.height = h;
-          const oCtx = offCanvas.getContext('2d'); const imgData = oCtx.createImageData(w, h); const data = imgData.data;
-          const scale = p.scale / 20000, bandCount = p.bands, thicknessThreshold = p.lineWeight / 100;
-          const rgbColors = colors.map(hex => { const num = parseInt(hex.slice(1), 16); return [num >> 16, (num >> 8) & 255, num & 255]; });
-          const bgCol = rgbColors[0];
+        render: (ctx, w, h, p, cols) => {
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = w; offCanvas.height = h;
+          const oCtx = offCanvas.getContext('2d');
+          const imgData = oCtx.createImageData(w, h);
+          const data = imgData.data;
+
+          const scale = p.scale / 30000;
+          const bandCount = p.bands;
+          const thicknessThreshold = p.lineWeight / 150;
+          const rgbCols = [bgColor, ...cols].map(hex => {
+            const num = parseInt(hex.slice(1), 16);
+            return [num >> 16, (num >> 8) & 255, num & 255];
+          });
+          const contourCol = rgbCols[0];
 
           for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
-              let n = noise2D(x * scale, y * scale); n = (n + 1) / 2;
-              const bandFloat = n * bandCount, bandIndex = Math.floor(bandFloat), fraction = bandFloat - bandIndex;
+              let n1 = noise2D(x * scale, y * scale);
+              let n2 = noise2D((x + 50) * scale * 2, (y + 50) * scale * 2) * 0.3;
+              let n = (n1 + n2) / 1.3;
+              n = Math.max(0, Math.min(1, (n + 0.5) * 0.7));
+
+              const bandFloat = n * bandCount;
+              const bandIndex = Math.floor(bandFloat);
+              const fraction = bandFloat - bandIndex;
               const idx = (y * w + x) * 4;
-              if (p.lineWeight > 0 && (fraction < thicknessThreshold || fraction > 1 - thicknessThreshold)) {
-                data[idx] = bgCol[0]; data[idx+1] = bgCol[1]; data[idx+2] = bgCol[2];
+
+              if (p.lineWeight > 0 && (fraction < thicknessThreshold || fraction > (1 - thicknessThreshold))) {
+                data[idx] = contourCol[0];
+                data[idx + 1] = contourCol[1];
+                data[idx + 2] = contourCol[2];
               } else {
-                const col = rgbColors[(Math.abs(bandIndex) % (rgbColors.length - 1)) + 1];
-                data[idx] = col[0]; data[idx+1] = col[1]; data[idx+2] = col[2];
+                const cIdx = ((bandIndex % cols.length) + cols.length) % cols.length;
+                const col = rgbCols[cIdx + 1] || rgbCols[1];
+                data[idx] = col[0];
+                data[idx + 1] = col[1];
+                data[idx + 2] = col[2];
               }
-              data[idx+3] = 255;
+              data[idx + 3] = 255;
             }
           }
-          oCtx.putImageData(imgData, 0, 0); ctx.drawImage(offCanvas, 0, 0);
+          oCtx.putImageData(imgData, 0, 0);
+          ctx.drawImage(offCanvas, 0, 0);
+        }
+      },
+
+      fluidMarble: {
+        name: "Fluid Marble", group: "Natural Forms",
+        params: {
+          sc: { type: 'range', min: 10, max: 1000, val: 300, label: "Scale" },
+          wp: { type: 'range', min: 0, max: 200, val: 60, label: "Swirl Warp" },
+          bnd: { type: 'range', min: 1, max: 30, val: 8, label: "Color Ribbons" },
+          tb: { type: 'range', min: 1, max: 50, val: 10, label: "Turbulence" },
+          con: { type: 'range', min: 10, max: 300, val: 100, label: "Contrast" }
+        },
+        render: (c, w, h, p, cols) => {
+          const imgData = c.createImageData(w, h);
+          const dt = imgData.data, ns = p.sc / 10000, tb = p.tb / 10;
+          const rgb = cols.map(x => { const n = parseInt(x.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; });
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let wx = x + noise2D(x * ns, y * ns) * p.wp * tb;
+              let wy = y + noise2D(x * ns + 100, y * ns + 100) * p.wp * tb;
+              let n = noise2D(wx * ns, wy * ns) * 0.5 + 0.5;
+              let bf = n * p.bnd, ci = Math.floor(bf) % cols.length, ni = (ci + 1) % cols.length, fr = bf - Math.floor(bf);
+              let f = Math.pow(fr * fr * (3 - 2 * fr), p.con / 100);
+              const c1 = rgb[ci], c2 = rgb[ni], id = (y * w + x) * 4;
+              dt[id] = c1[0] + (c2[0] - c1[0]) * f;
+              dt[id + 1] = c1[1] + (c2[1] - c1[1]) * f;
+              dt[id + 2] = c1[2] + (c2[2] - c1[2]) * f;
+              dt[id + 3] = 255;
+            }
+          }
+          c.putImageData(imgData, 0, 0);
         }
       },
 
       cellular: {
-        name: "Cellular Blooms",
+        name: "Cellular Blooms", group: "Natural Forms",
         params: {
-          cells: { type: 'range', min: 1, max: 500, val: 40, label: "Cell Count" },
-          distortion: { type: 'range', min: 0, max: 1000, val: 120, label: "Membrane Distortion" },
-          mutation: { type: 'range', min: 1, max: 50, val: 6, label: "Mutation Exponent" },
-          layers: { type: 'range', min: 1, max: 30, val: 8, label: "Internal Layers" }
+          cl: { type: 'range', min: 1, max: 500, val: 40, label: "Bloom Count" },
+          dst: { type: 'range', min: 0, max: 1000, val: 120, label: "Organic Warp" },
+          l: { type: 'range', min: 1, max: 30, val: 8, label: "Rings per Bloom" },
+          sp: { type: 'range', min: 0, max: 200, val: 40, label: "Radius Spread" },
+          mut: { type: 'range', min: 1, max: 50, val: 6, label: "Petal Shape" },
+          str: { type: 'select', options: ['Normal', 'None', 'Heavy'], val: 'Normal', label: "Ring Borders" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
-          for(let i=0; i<p.cells; i++) {
-            const cx = random() * w, cy = random() * h, baseRad = randomRange(10, Math.min(w, h) * 0.4);
-            for(let l = p.layers; l > 0; l--) {
-              const layerRatio = (l / p.layers), r = baseRad * layerRatio;
-              ctx.beginPath();
-              const points = Math.max(50, Math.floor(r * 2)); 
-              for(let pt=0; pt<=points; pt++) {
-                const theta = (pt / points) * Math.PI * 2;
-                const n1 = noise2D(Math.cos(theta)*1.5 + cx*0.01, Math.sin(theta)*1.5 + cy*0.01);
-                let mutationVal = Math.pow(Math.abs(noise2D(Math.cos(theta)*p.mutation + cx, Math.sin(theta)*p.mutation + cy)), 3);
-                const deformedR = r + (n1 * p.distortion * layerRatio) + (mutationVal * p.distortion * (p.mutation / 2));
-                const px = cx + Math.cos(theta) * deformedR, py = cy + Math.sin(theta) * deformedR;
-                if(pt === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'round';
+          for (let i = 0; i < p.cl; i++) {
+            const cx = random() * w, cy = random() * h, br = randomRange(10, Math.min(w, h) * (p.sp / 100));
+            for (let l = p.l; l > 0; l--) {
+              const lr = l / p.l, r = br * lr;
+              c.beginPath();
+              const pts = Math.max(50, Math.floor(r * 2));
+              for (let pt = 0; pt <= pts; pt++) {
+                const th = (pt / pts) * Math.PI * 2;
+                const n1 = noise2D(Math.cos(th) * 1.5 + cx * 0.01, Math.sin(th) * 1.5 + cy * 0.01);
+                let mv = Math.pow(Math.abs(noise2D(Math.cos(th) * p.mut + cx, Math.sin(th) * p.mut + cy)), 3);
+                const dr = r + (n1 * p.dst * lr) + (mv * p.dst * 3);
+                const px = cx + Math.cos(th) * dr, py = cy + Math.sin(th) * dr;
+                if (pt === 0) c.moveTo(px, py); else c.lineTo(px, py);
               }
-              ctx.fillStyle = colors[l % colors.length]; ctx.globalAlpha = 0.9; ctx.fill();
-              ctx.strokeStyle = colors[(l+1) % colors.length]; ctx.lineWidth = randomRange(0.5, 3); ctx.stroke();
+              c.fillStyle = cols[l % cols.length];
+              c.globalAlpha = 0.9;
+              c.fill();
+              if (p.str !== 'None') {
+                c.strokeStyle = cols[(l + 1) % cols.length];
+                c.lineWidth = p.str === 'Heavy' ? randomRange(2, 8) : randomRange(0.5, 3);
+                c.stroke();
+              }
             }
           }
-          ctx.globalAlpha = 1.0;
+          c.globalAlpha = 1;
         }
       },
 
-      isometricBlocks: {
-        name: "Isometric Monoliths",
+      perlinContours: {
+        name: "Contour Rings", group: "Natural Forms",
         params: {
-          grid: { type: 'range', min: 2, max: 100, val: 18, label: "Matrix Resolution" },
-          height: { type: 'range', min: 0, max: 1000, val: 120, label: "Vertical Extrusion" }
+          sc: { type: 'range', min: 1, max: 100, val: 50, label: "Field Frequency" },
+          th: { type: 'range', min: 1, max: 100, val: 10, label: "Line Thickness" },
+          sm: { type: 'range', min: 1, max: 100, val: 10, label: "Ring Density" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
-          const tileW = Math.min(w, h) / p.grid, tileH = tileW / 2, originX = w / 2, originY = h * 0.2;
-          const blocks = [];
-          for (let row = 0; row < p.grid; row++) {
-            for (let col = 0; col < p.grid; col++) {
-              let n = noise2D(row * 0.15, col * 0.15);
-              blocks.push({ row, col, depth: row + col, alt: Math.abs(n) * p.height * 5 + 10, colorIdx: Math.floor(Math.abs(n) * 10) % (colors.length - 1) + 1 });
+        render: (c, w, h, p, cols) => {
+          const id = c.createImageData(w, h), dt = id.data;
+          const bg = [parseInt(bgColor.slice(1,3),16), parseInt(bgColor.slice(3,5),16), parseInt(bgColor.slice(5,7),16)];
+          const fg = [parseInt(cols[0].slice(1,3),16), parseInt(cols[0].slice(3,5),16), parseInt(cols[0].slice(5,7),16)];
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let v = noise2D(x * p.sc / 10000, y * p.sc / 10000) * 0.5 + 0.5;
+              let fr = v * p.sm - Math.floor(v * p.sm);
+              let cl = fr < p.th / 100 ? fg : bg;
+              let i = (y * w + x) * 4;
+              dt[i] = cl[0]; dt[i + 1] = cl[1]; dt[i + 2] = cl[2]; dt[i + 3] = 255;
             }
           }
-          blocks.sort((a, b) => a.depth - b.depth);
-          blocks.forEach(b => {
-            const ix = originX + (b.col - b.row) * (tileW / 2), iy = originY + (b.col + b.row) * (tileH / 2), cBase = colors[b.colorIdx];
-            const drawFace = (alpha, pathFn) => {
-              ctx.globalAlpha = alpha; ctx.fillStyle = cBase; ctx.strokeStyle = cBase; ctx.lineWidth = 1; ctx.beginPath(); pathFn(); ctx.fill(); ctx.stroke(); 
-            };
-            drawFace(0.6, () => { ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix - tileW/2, iy + tileH/2 - b.alt); ctx.lineTo(ix - tileW/2, iy + tileH/2); ctx.lineTo(ix, iy); });
-            drawFace(0.3, () => { ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix + tileW/2, iy + tileH/2 - b.alt); ctx.lineTo(ix + tileW/2, iy + tileH/2); ctx.lineTo(ix, iy); });
-            drawFace(1.0, () => { ctx.moveTo(ix, iy - b.alt); ctx.lineTo(ix + tileW/2, iy + tileH/2 - b.alt); ctx.lineTo(ix, iy + tileH - b.alt); ctx.lineTo(ix - tileW/2, iy + tileH/2 - b.alt); });
-          });
-          ctx.globalAlpha = 1.0;
-        }
-      },
-
-      gradients: {
-        name: "Gradients",
-        params: {
-          style: { type: 'select', options: ['linear', 'radial', 'conic'], val: 'linear', label: "Gradient Type" },
-          angle: { type: 'range', min: 0, max: 360, val: 45, label: "Angle" },
-          blend: { type: 'range', min: 0, max: 100, val: 50, label: "Blend Stop" }
-        },
-        render: (ctx, w, h, p, colors) => {
-          const angleRad = (p.angle * Math.PI) / 180; let grad;
-          if (p.style === 'linear') {
-            const diag = Math.sqrt(w*w + h*h);
-            grad = ctx.createLinearGradient(w/2 - Math.cos(angleRad)*(diag/2), h/2 - Math.sin(angleRad)*(diag/2), w/2 + Math.cos(angleRad)*(diag/2), h/2 + Math.sin(angleRad)*(diag/2));
-          } else if (p.style === 'radial') grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h)/1.2);
-          else grad = ctx.createConicGradient(angleRad, w/2, h/2);
-          colors.forEach((c, idx) => {
-            let stop = idx / (colors.length - 1);
-            if(idx > 0 && idx < colors.length - 1) stop = stop * (p.blend / 50);
-            grad.addColorStop(Math.min(1, Math.max(0, stop)), c);
-          });
-          ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+          c.putImageData(id, 0, 0);
         }
       },
 
       checkerboard: {
-        name: "Checkerboard",
+        name: "Checkerboard Mosaic", group: "Geometric",
         params: {
-          scale: { type: 'range', min: 2, max: 500, val: 40, label: "Square Size" },
-          rotation: { type: 'range', min: -90, max: 90, val: 15, label: "Grid Angle (°)" }
+          sc: { type: 'range', min: 10, max: 400, val: 60, label: "Tile Size" },
+          rt: { type: 'range', min: -90, max: 90, val: 0, label: "Angle" },
+          colorMode: { type: 'select', options: ['Alternating Two-Tone', 'Random Individual', 'Gradient Blend'], val: 'Random Individual', label: "Color Layout" },
+          md: { type: 'select', options: ['Solid Fill', 'Outlines', 'Mixed Circles'], val: 'Solid Fill', label: "Tile Style" },
+          gap: { type: 'range', min: 0, max: 40, val: 2, label: "Spacing" }
         },
-        render: (ctx, w, h, p, colors) => {
-          const scale = p.scale, rotate = p.rotation * (Math.PI / 180), diag = Math.hypot(w, h) * 1.5;
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.fillStyle = colors[1 % colors.length]; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1;
-          ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(rotate); ctx.translate(-diag / 2, -diag / 2);
-          for (let y = 0; y < diag; y += scale) {
-            for (let x = 0; x < diag; x += scale) {
-              if (Math.floor(x / scale + y / scale) % 2 === 0) {
-                ctx.fillRect(x, y, scale+1, scale+1); ctx.strokeRect(x, y, scale+1, scale+1); // Pixel gap fix
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const r = p.rt * Math.PI / 180;
+          const diag = Math.ceil(Math.hypot(w, h) * 1.5);
+          const size = Math.max(6, Math.floor(p.sc));
+          const gap = p.gap;
+          const innerSize = Math.max(1, size - gap);
+
+          c.save();
+          c.translate(w / 2, h / 2);
+          c.rotate(r);
+          c.translate(-diag / 2, -diag / 2);
+
+          const countX = Math.ceil(diag / size) + 2;
+          const countY = Math.ceil(diag / size) + 2;
+
+          for (let gy = 0; gy < countY; gy++) {
+            for (let gx = 0; gx < countX; gx++) {
+              const px = Math.floor(gx * size);
+              const py = Math.floor(gy * size);
+
+              let fillCol;
+              if (p.colorMode === 'Alternating Two-Tone') {
+                fillCol = (gx + gy) % 2 === 0 ? cols[0] : (cols[1] || bgColor);
+              } else if (p.colorMode === 'Gradient Blend') {
+                const prog = (gx / countX + gy / countY) * 0.5;
+                const idx = Math.floor(prog * cols.length) % cols.length;
+                fillCol = cols[idx];
+              } else {
+                const cellHash = Math.abs(Math.floor(hash(gx * 73, gy * 91) * 100000));
+                fillCol = cols[cellHash % cols.length];
+              }
+
+              c.fillStyle = fillCol;
+              c.strokeStyle = fillCol;
+              c.lineWidth = 1.5;
+
+              if (p.md === 'Solid Fill') {
+                c.fillRect(px, py, innerSize, innerSize);
+              } else if (p.md === 'Outlines') {
+                c.strokeRect(px + 1, py + 1, innerSize - 2, innerSize - 2);
+              } else {
+                if ((gx + gy) % 2 === 0) {
+                  c.fillRect(px, py, innerSize, innerSize);
+                } else {
+                  c.beginPath();
+                  c.arc(px + innerSize / 2, py + innerSize / 2, innerSize / 2, 0, Math.PI * 2);
+                  c.fill();
+                }
               }
             }
           }
-          ctx.restore();
+          c.restore();
+        }
+      },
+
+      crystalGems: {
+        name: "Faceted Crystals", group: "Geometric",
+        params: {
+          sc: { type: 'range', min: 20, max: 500, val: 90, label: "Facet Scale" },
+          dist: { type: 'range', min: 0, max: 200, val: 80, label: "Shatter Noise" },
+          mod: { type: 'select', options: ['Vibrant Gradient', 'Flat Minimal'], val: 'Vibrant Gradient', label: "Surface Style" },
+          str: { type: 'select', options: ['Yes', 'No'], val: 'Yes', label: "Edge Outlines" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const s = p.sc, d = p.dist / 100, cw = Math.ceil(w / s) + 2, ch = Math.ceil(h / s) + 2, pts = [];
+          for (let y = -1; y <= ch; y++) {
+            let r = [];
+            for (let x = -1; x <= cw; x++) r.push({ x: x * s + randomRange(-0.5 * d, 0.5 * d) * s, y: y * s + randomRange(-0.5 * d, 0.5 * d) * s });
+            pts.push(r);
+          }
+          for (let y = 0; y < pts.length - 1; y++) {
+            for (let x = 0; x < pts[y].length - 1; x++) {
+              const dr = (a, b, q) => {
+                c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.lineTo(q.x, q.y); c.closePath();
+                let g = p.mod === 'Flat Minimal' ? pick(cols) : c.createLinearGradient(a.x, a.y, q.x, q.y);
+                if (p.mod !== 'Flat Minimal') { g.addColorStop(0, pick(cols)); g.addColorStop(1, bgColor); }
+                c.fillStyle = g; c.fill();
+                if (p.str === 'Yes') { c.strokeStyle = bgColor; c.lineWidth = 1; c.stroke(); }
+              };
+              if ((x + y) % 2 === 0) { dr(pts[y][x], pts[y][x + 1], pts[y + 1][x]); dr(pts[y][x + 1], pts[y + 1][x + 1], pts[y + 1][x]); }
+              else { dr(pts[y][x], pts[y][x + 1], pts[y + 1][x + 1]); dr(pts[y][x], pts[y + 1][x + 1], pts[y + 1][x]); }
+            }
+          }
+        }
+      },
+
+      woven: {
+        name: "Woven Tapestry", group: "Geometric",
+        params: {
+          s: { type: 'range', min: 10, max: 200, val: 50, label: "Tile Size" },
+          t: { type: 'range', min: 0, max: 15, val: 2, label: "Outline Width" },
+          div: { type: 'range', min: 1, max: 20, val: 4, label: "Symmetry Repeat" },
+          st: { type: 'select', options: ['Chevron', 'Triangle', 'Block', 'Cross', 'Diamond'], val: 'Chevron', label: "Weave Pattern" },
+          str: { type: 'select', options: ['Yes', 'No'], val: 'Yes', label: "Outlines" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const s = Math.max(12, Math.floor(p.s));
+          const colsCount = Math.ceil(w / s) + 2;
+          const rowsCount = Math.ceil(h / s) + 2;
+          c.lineWidth = p.t;
+          c.lineJoin = 'miter';
+
+          for (let gy = -1; gy < rowsCount; gy++) {
+            for (let gx = -1; gx < colsCount; gx++) {
+              const px = gx * s;
+              const py = gy * s;
+              const n = Math.abs(noise2D(gx / p.div, gy / p.div));
+              const primaryIdx = Math.floor(n * 10) % cols.length;
+              const altIdx = (Math.abs(gx * 3 + gy * 7) % cols.length);
+              const col1 = cols[primaryIdx] || cols[0];
+              const col2 = cols[(primaryIdx + 1) % cols.length] || cols[altIdx];
+
+              const isEven = (gx + gy) % 2 === 0;
+              c.strokeStyle = p.str === 'Yes' && p.t > 0 ? bgColor : 'transparent';
+
+              if (p.st === 'Block') {
+                c.fillStyle = isEven ? col1 : col2;
+                c.beginPath();
+                c.rect(px, py, s + 1, s + 1);
+                c.fill();
+                if (p.str === 'Yes' && p.t > 0) c.stroke();
+              } else if (p.st === 'Triangle') {
+                c.fillStyle = col1;
+                c.beginPath();
+                if (isEven) {
+                  c.moveTo(px, py); c.lineTo(px + s + 1, py); c.lineTo(px, py + s + 1);
+                } else {
+                  c.moveTo(px + s + 1, py); c.lineTo(px + s + 1, py + s + 1); c.lineTo(px, py + s + 1);
+                }
+                c.closePath(); c.fill();
+                if (p.str === 'Yes' && p.t > 0) c.stroke();
+
+                c.fillStyle = col2;
+                c.beginPath();
+                if (isEven) {
+                  c.moveTo(px + s + 1, py); c.lineTo(px + s + 1, py + s + 1); c.lineTo(px, py + s + 1);
+                } else {
+                  c.moveTo(px, py); c.lineTo(px + s + 1, py); c.lineTo(px, py + s + 1);
+                }
+                c.closePath(); c.fill();
+                if (p.str === 'Yes' && p.t > 0) c.stroke();
+              } else if (p.st === 'Diamond') {
+                c.fillStyle = col2;
+                c.fillRect(px, py, s + 1, s + 1);
+                c.fillStyle = col1;
+                c.beginPath();
+                c.moveTo(px + s / 2, py);
+                c.lineTo(px + s + 1, py + s / 2);
+                c.lineTo(px + s / 2, py + s + 1);
+                c.lineTo(px, py + s / 2);
+                c.closePath();
+                c.fill();
+                if (p.str === 'Yes' && p.t > 0) c.stroke();
+              } else if (p.st === 'Cross') {
+                c.fillStyle = col2;
+                c.fillRect(px, py, s + 1, s + 1);
+                c.fillStyle = col1;
+                const third = s / 3;
+                c.fillRect(px + third, py, third, s + 1);
+                c.fillRect(px, py + third, s + 1, third);
+                if (p.str === 'Yes' && p.t > 0) {
+                  c.strokeRect(px + third, py, third, s + 1);
+                  c.strokeRect(px, py + third, s + 1, third);
+                }
+              } else {
+                // Chevron: Interlocking woven bands
+                c.fillStyle = col1;
+                c.beginPath();
+                if (isEven) {
+                  c.moveTo(px, py);
+                  c.lineTo(px + s / 2, py + s / 2);
+                  c.lineTo(px, py + s + 1);
+                  c.lineTo(px + s / 2, py + s + 1);
+                  c.lineTo(px + s + 1, py + s / 2);
+                  c.lineTo(px + s / 2, py);
+                } else {
+                  c.moveTo(px + s + 1, py);
+                  c.lineTo(px + s / 2, py + s / 2);
+                  c.lineTo(px + s + 1, py + s + 1);
+                  c.lineTo(px + s / 2, py + s + 1);
+                  c.lineTo(px, py + s / 2);
+                  c.lineTo(px + s / 2, py);
+                }
+                c.closePath();
+                c.fill();
+                if (p.str === 'Yes' && p.t > 0) c.stroke();
+
+                c.fillStyle = col2;
+                c.beginPath();
+                if (isEven) {
+                  c.moveTo(px, py);
+                  c.lineTo(px + s / 2, py);
+                  c.lineTo(px, py + s / 2);
+                  c.closePath(); c.fill();
+                  if (p.str === 'Yes' && p.t > 0) c.stroke();
+
+                  c.beginPath();
+                  c.moveTo(px + s + 1, py + s + 1);
+                  c.lineTo(px + s / 2, py + s + 1);
+                  c.lineTo(px + s + 1, py + s / 2);
+                  c.closePath(); c.fill();
+                  if (p.str === 'Yes' && p.t > 0) c.stroke();
+                } else {
+                  c.moveTo(px + s + 1, py);
+                  c.lineTo(px + s / 2, py);
+                  c.lineTo(px + s + 1, py + s / 2);
+                  c.closePath(); c.fill();
+                  if (p.str === 'Yes' && p.t > 0) c.stroke();
+
+                  c.beginPath();
+                  c.moveTo(px, py + s + 1);
+                  c.lineTo(px + s / 2, py + s + 1);
+                  c.lineTo(px, py + s / 2);
+                  c.closePath(); c.fill();
+                  if (p.str === 'Yes' && p.t > 0) c.stroke();
+                }
+              }
+            }
+          }
+        }
+      },
+
+      blocks: {
+        name: "Architectural Blocks", group: "Geometric",
+        params: {
+          d: { type: 'range', min: 1, max: 12, val: 6, label: "Subdivision Depth" },
+          pad: { type: 'range', min: 0, max: 150, val: 10, label: "Padding" },
+          ht: { type: 'range', min: 0, max: 100, val: 40, label: "Pattern Detail %" },
+          r: { type: 'range', min: 0, max: 50, val: 0, label: "Corner Radius" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const rects = [];
+          const spl = (x, y, rw, rh, d) => {
+            if (d === 0 || (d < p.d && random() > 0.85)) { rects.push({ x, y, w: rw, h: rh }); return; }
+            let r = randomRange(0.2, 0.8);
+            if (rw > rh) { spl(x, y, rw * r, rh, d - 1); spl(x + rw * r, y, rw - rw * r, rh, d - 1); }
+            else { spl(x, y, rw, rh * r, d - 1); spl(x, y + rh * r, rw, rh - rh * r, d - 1); }
+          };
+          spl(0, 0, w, h, p.d);
+          const dr = (x, y, w, h, r) => {
+            c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+            c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+            c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
+          };
+          rects.forEach(rt => {
+            const bx = rt.x + p.pad, by = rt.y + p.pad, bw = rt.w - p.pad * 2, bh = rt.h - p.pad * 2;
+            if (bw <= 0 || bh <= 0) return;
+            const c1 = pick(cols);
+            c.fillStyle = bgColor; c.globalAlpha = 0.5; c.fillRect(bx + p.pad / 2, by + p.pad / 2, bw, bh); c.globalAlpha = 1;
+            c.fillStyle = c1; c.strokeStyle = c1;
+            if (random() * 100 < p.ht) {
+              const c2 = pick(cols), sw = randomRange(2, 20);
+              c.save();
+              p.r > 0 ? dr(bx, by, bw, bh, p.r) : (c.beginPath(), c.rect(bx, by, bw, bh));
+              c.clip(); c.fillRect(bx, by, bw, bh); c.fillStyle = c2;
+              let pt = Math.floor(random() * 3);
+              if (pt === 0) { for (let x = bx; x < bx + bw; x += sw * 2) c.fillRect(x, by, sw, bh); }
+              else if (pt === 1) { for (let y = by; y < by + bh; y += sw * 2) c.fillRect(bx, y, bw, sw); }
+              else { c.beginPath(); c.arc(bx + bw / 2, by + bh / 2, Math.min(bw, bh) * randomRange(0.2, 0.5), 0, Math.PI * 2); c.fill(); }
+              c.restore();
+            } else {
+              p.r > 0 ? dr(bx, by, bw, bh, p.r) : (c.beginPath(), c.rect(bx, by, bw, bh));
+              c.fill(); c.stroke();
+            }
+            c.strokeStyle = bgColor; c.lineWidth = 2;
+            p.r > 0 ? (dr(bx, by, bw, bh, p.r), c.stroke()) : c.strokeRect(bx, by, bw, bh);
+          });
+        }
+      },
+
+      geoGrid: {
+        name: "Geometric Grid", group: "Geometric",
+        params: {
+          s: { type: 'range', min: 10, max: 500, val: 80, label: "Cell Size" },
+          sh: { type: 'select', options: ['all', 'squares', 'circles', 'mixed'], val: 'all', label: "Shape Motif" },
+          str: { type: 'select', options: ['Yes', 'No'], val: 'Yes', label: "Cell Stroke" },
+          rot: { type: 'range', min: -45, max: 45, val: 0, label: "Grid Angle" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const s = p.s, colsNum = Math.ceil(w / s) + 2, rowsNum = Math.ceil(h / s) + 2;
+          c.save(); c.translate(w / 2, h / 2); c.rotate(p.rot * Math.PI / 180); c.translate(-w / 2, -h / 2);
+          for (let y = 0; y < rowsNum; y++) {
+            for (let x = 0; x < colsNum; x++) {
+              let px = x * s, py = y * s, ts = s;
+              let cIdxFill = hash(x, y) * 1000 % cols.length | 0;
+              c.fillStyle = cols[cIdxFill]; c.strokeStyle = p.str === 'Yes' ? bgColor : 'transparent'; c.lineWidth = 1;
+              let t = (hash(x + 1, y + 1) * 100 | 0) % 4;
+              if (p.sh === 'squares') t = 0; if (p.sh === 'circles') t = 1; if (p.sh === 'mixed') t = t % 2;
+              c.beginPath();
+              if (t === 0) c.rect(px, py, ts, ts);
+              else if (t === 1) c.arc(px + ts / 2, py + ts / 2, ts / 2, 0, Math.PI * 2);
+              else if (t === 2) { c.moveTo(px, py + ts); c.lineTo(px + ts / 2, py); c.lineTo(px + ts, py + ts); }
+              else { c.moveTo(px + ts / 2, py + ts / 2); c.arc(px + ts / 2, py + ts / 2, ts / 2, 0, Math.PI); }
+              c.fill(); if (p.str === 'Yes') c.stroke();
+            }
+          }
+          c.restore();
+        }
+      },
+
+      circlePacking: {
+        name: "Circle Bubbles", group: "Geometric",
+        params: {
+          a: { type: 'range', min: 500, max: 20000, val: 5000, label: "Bubble Attempts" },
+          mn: { type: 'range', min: 2, max: 50, val: 4, label: "Smallest Radius" },
+          mx: { type: 'range', min: 10, max: 400, val: 120, label: "Largest Radius" },
+          nest: { type: 'range', min: 0, max: 5, val: 2, label: "Inner Filled Circles" },
+          stk: { type: 'range', min: 0, max: 20, val: 1, label: "Gap Padding" },
+          op: { type: 'range', min: 10, max: 100, val: 100, label: "Opacity %" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const circs = [];
+          for (let i = 0; i < p.a; i++) {
+            let r = randomRange(p.mn, p.mx), x = randomRange(r, w - r), y = randomRange(r, h - r), v = true;
+            for (let j = 0; j < circs.length; j++) {
+              if ((x - circs[j].x) ** 2 + (y - circs[j].y) ** 2 < (r + circs[j].r + p.stk) ** 2) { v = false; break; }
+            }
+            if (v) circs.push({ x, y, r, c: pick(cols) });
+          }
+          circs.forEach(ci => {
+            c.fillStyle = ci.c; c.strokeStyle = bgColor; c.lineWidth = p.stk; c.globalAlpha = p.op / 100;
+            c.beginPath(); c.arc(ci.x, ci.y, ci.r, 0, Math.PI * 2); c.fill();
+            if (p.stk > 0) c.stroke();
+
+            // Render inner concentric filled circles (instead of outline strokes)
+            for (let k = 1; k <= p.nest; k++) {
+              let nr = ci.r * (1 - k / (p.nest + 1));
+              if (nr > p.mn * 0.5) {
+                c.fillStyle = pick(cols);
+                c.beginPath(); c.arc(ci.x, ci.y, nr, 0, Math.PI * 2); c.fill();
+                if (p.stk > 0) {
+                  c.strokeStyle = bgColor;
+                  c.lineWidth = Math.max(1, p.stk * 0.6);
+                  c.stroke();
+                }
+              }
+            }
+          });
+          c.globalAlpha = 1;
+        }
+      },
+
+      isoBlocks: {
+        name: "Isometric City", group: "Geometric",
+        params: {
+          g: { type: 'range', min: 2, max: 100, val: 18, label: "City Grid Size" },
+          ht: { type: 'range', min: 0, max: 1000, val: 120, label: "Tower Height" },
+          t: { type: 'range', min: 10, max: 90, val: 50, label: "Perspective Tilt" },
+          gp: { type: 'range', min: 0, max: 50, val: 0, label: "Street Gap" },
+          win: { type: 'range', min: 0, max: 100, val: 20, label: "Windows %" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'round';
+          const tw = Math.min(w, h) / p.g, th = tw * (p.t / 100), ox = w / 2, oy = h - th, blks = [];
+          for (let r = 0; r < p.g; r++) {
+            for (let l = 0; l < p.g; l++) {
+              let n = noise2D(r * 0.15, l * 0.15);
+              blks.push({ r, l, d: r + l, a: Math.abs(n) * p.ht * 5 + 10, c: Math.floor(Math.abs(n) * 10) % cols.length });
+            }
+          }
+          blks.sort((a, b) => b.d - a.d);
+          blks.forEach(b => {
+            let ix = ox + (b.l - b.r) * (tw / 2), iy = oy - (b.l + b.r) * (th / 2), cb = cols[b.c], ww = tw - p.gp, hh = th - p.gp / 2;
+            const df = (a, fn) => { c.globalAlpha = a; c.fillStyle = cb; c.strokeStyle = cb; c.lineWidth = 1; c.beginPath(); fn(); c.fill(); c.stroke(); };
+            df(0.6, () => { c.moveTo(ix, iy - b.a); c.lineTo(ix - ww / 2, iy + hh / 2 - b.a); c.lineTo(ix - ww / 2, iy + hh / 2); c.lineTo(ix, iy); });
+            df(0.3, () => { c.moveTo(ix, iy - b.a); c.lineTo(ix + ww / 2, iy + hh / 2 - b.a); c.lineTo(ix + ww / 2, iy + hh / 2); c.lineTo(ix, iy); });
+            df(1, () => { c.moveTo(ix, iy - b.a); c.lineTo(ix + ww / 2, iy + hh / 2 - b.a); c.lineTo(ix, iy + hh - b.a); c.lineTo(ix - ww / 2, iy + hh / 2 - b.a); });
+            if (random() * 100 < p.win) {
+              c.fillStyle = bgColor; c.globalAlpha = 0.8; let wS = ww * 0.1;
+              for (let wy = iy - b.a + hh; wy < iy - wS * 2; wy += wS * 3) {
+                c.fillRect(ix - ww / 3, wy, wS, wS * 2);
+                c.fillRect(ix + ww / 3 - wS, wy, wS, wS * 2);
+              }
+            }
+          });
+          c.globalAlpha = 1;
         }
       },
 
       hexCubes: {
-        name: "Hex Cubes",
+        name: "3D Hexagon Cubes", group: "Geometric",
         params: {
-          scale: { type: 'range', min: 5, max: 200, val: 30, label: "Hex Scale" }
+          sc: { type: 'range', min: 5, max: 200, val: 30, label: "Hexagon Size" },
+          st: { type: 'range', min: 0, max: 20, val: 1, label: "Border Thickness" },
+          fs: { type: 'range', min: 10, max: 100, val: 100, label: "Scale %" },
+          gp: { type: 'range', min: 0, max: 20, val: 0, label: "Spacing Gap" }
         },
-        render: (ctx, w, h, p, colors) => {
-          const r = p.scale, hexW = Math.sqrt(3) * r, hexH = 2 * r;
-          const topCol = colors[0], leftCol = colors[1 % colors.length], rightCol = colors[2 % colors.length];
-          ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); ctx.lineJoin = 'round';
-
-          for (let y = -hexH; y < h + hexH; y += hexH * 0.75) {
-            for (let x = -hexW; x < w + hexW; x += hexW) {
-              let cx = x; if (Math.round(y / (hexH * 0.75)) % 2 !== 0) cx += hexW / 2;
-
-              ctx.fillStyle = topCol; ctx.strokeStyle = topCol; ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + hexW / 2, y - r / 2); ctx.lineTo(cx, y - r); ctx.lineTo(cx - hexW / 2, y - r / 2);
-              ctx.fill(); ctx.stroke();
-
-              ctx.fillStyle = leftCol; ctx.strokeStyle = leftCol;
-              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx - hexW / 2, y - r / 2); ctx.lineTo(cx - hexW / 2, y + r / 2); ctx.lineTo(cx, y + r);
-              ctx.fill(); ctx.stroke();
-
-              ctx.fillStyle = rightCol; ctx.strokeStyle = rightCol;
-              ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + hexW / 2, y - r / 2); ctx.lineTo(cx + hexW / 2, y + r / 2); ctx.lineTo(cx, y + r);
-              ctx.fill(); ctx.stroke();
+        render: (c, w, h, p, cols) => {
+          const r = p.sc, hw = Math.sqrt(3) * r, hh = 2 * r;
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'round';
+          for (let y = -hh; y < h + hh; y += hh * 0.75) {
+            for (let x = -hw; x < w + hw; x += hw) {
+              let cx = x;
+              if (Math.round(y / (hh * 0.75)) % 2 !== 0) cx += hw / 2;
+              let sw = hw * (p.fs / 100) - p.gp, sr = r * (p.fs / 100) - p.gp / 2;
+              c.lineWidth = Math.max(1, p.st);
+              c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
+              c.beginPath(); c.moveTo(cx, y); c.lineTo(cx + sw / 2, y - sr / 2); c.lineTo(cx, y - sr); c.lineTo(cx - sw / 2, y - sr / 2); c.fill(); if (p.st > 0) c.stroke();
+              c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
+              c.beginPath(); c.moveTo(cx, y); c.lineTo(cx - sw / 2, y - sr / 2); c.lineTo(cx - sw / 2, y + sr / 2); c.lineTo(cx, y + sr); c.fill(); if (p.st > 0) c.stroke();
+              c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
+              c.beginPath(); c.moveTo(cx, y); c.lineTo(cx + sw / 2, y - sr / 2); c.lineTo(cx + sw / 2, y + sr / 2); c.lineTo(cx, y + sr); c.fill(); if (p.st > 0) c.stroke();
             }
           }
         }
       },
 
-      bgCircuit: {
-        name: "Circuit Board",
+      mondrian: {
+        name: "Mondrian Grid", group: "Geometric",
         params: {
-          density: { type: 'range', min: 1, max: 500, val: 50, label: "Path Count" },
-          scale: { type: 'range', min: 5, max: 200, val: 25, label: "Grid Step Size" },
-          thickness: { type: 'range', min: 1, max: 20, val: 2, label: "Trace Weight" },
-          glow: { type: 'range', min: 0, max: 100, val: 10, label: "Neon Glow" }
+          d: { type: 'range', min: 1, max: 10, val: 5, label: "Grid Divisions" },
+          lw: { type: 'range', min: 1, max: 40, val: 10, label: "Black Line Weight" },
+          gp: { type: 'range', min: 0, max: 50, val: 0, label: "Margin Padding" },
+          fp: { type: 'range', min: 0, max: 100, val: 30, label: "Color Fill %" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          ctx.shadowBlur = p.glow; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          for (let i = 0; i < p.density; i++) {
-            const col = colors[Math.floor(random() * (colors.length - 1)) + 1];
-            ctx.strokeStyle = col; ctx.fillStyle = col; ctx.shadowColor = col; ctx.lineWidth = randomRange(1, p.thickness);
-            let cx = Math.floor((random() * w) / p.scale) * p.scale, cy = Math.floor((random() * h) / p.scale) * p.scale;
-
-            ctx.beginPath(); ctx.arc(cx, cy, ctx.lineWidth * 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(cx, cy);
-            let angle = Math.floor(randomRange(0, 8)) * (Math.PI / 4); 
-            for (let s = 0; s < Math.floor(randomRange(5, 15)); s++) {
-              cx += Math.cos(angle) * (Math.floor(randomRange(1, 6)) * p.scale); cy += Math.sin(angle) * (Math.floor(randomRange(1, 6)) * p.scale);
-              ctx.lineTo(cx, cy); angle += (random() > 0.5 ? 1 : -1) * (random() > 0.5 ? Math.PI/4 : Math.PI/2);
-            }
-            ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, ctx.lineWidth * 2.5, 0, Math.PI * 2); ctx.fill();
-          }
-          ctx.shadowBlur = 0;
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const rcs = [];
+          const sub = (x, y, rw, rh, d) => {
+            if (d === 0) { rcs.push({ x, y, rw, rh }); return; }
+            let r = randomRange(0.2, 0.8);
+            if (rw > rh) { sub(x, y, rw * r, rh, d - 1); sub(x + rw * r, y, rw - rw * r, rh, d - 1); }
+            else { sub(x, y, rw, rh * r, d - 1); sub(x, y + rh * r, rw, rh - rh * r, d - 1); }
+          };
+          sub(0, 0, w, h, p.d);
+          c.lineWidth = p.lw; c.strokeStyle = cols[0];
+          rcs.forEach(r => {
+            c.fillStyle = random() * 100 > p.fp ? bgColor : pick(cols.slice(1));
+            c.fillRect(r.x + p.gp, r.y + p.gp, r.rw - p.gp * 2, r.rh - p.gp * 2);
+            c.strokeRect(r.x + p.gp, r.y + p.gp, r.rw - p.gp * 2, r.rh - p.gp * 2);
+          });
         }
       },
 
-      bgSkyline: {
-        name: "City Skyline",
+      bauhaus: {
+        name: "Bauhaus Studio", group: "Geometric",
         params: {
-          density: { type: 'range', min: 1, max: 20, val: 4, label: "Parallax Layers" },
-          scale: { type: 'range', min: 5, max: 300, val: 40, label: "Building Width" },
-          windowChance: { type: 'range', min: 0, max: 100, val: 30, label: "Window Density %" },
-          depth: { type: 'range', min: 0, max: 100, val: 60, label: "Atmospheric Depth %" }
+          n: { type: 'range', min: 5, max: 100, val: 30, label: "Shape Count" },
+          sc: { type: 'range', min: 10, max: 300, val: 100, label: "Scale" },
+          md: { type: 'select', options: ['mixed', 'circles', 'squares'], val: 'mixed', label: "Primary Motif" },
+          al: { type: 'range', min: 10, max: 100, val: 100, label: "Opacity %" }
         },
-        render: (ctx, w, h, p, colors) => {
-          const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-          skyGrad.addColorStop(0, colors[0]); skyGrad.addColorStop(1, colors[1 % colors.length]);
-          ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, w, h);
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.globalAlpha = p.al / 100;
+          for (let i = 0; i < p.n; i++) {
+            let x = random() * w, y = random() * h, s = p.sc * randomRange(0.2, 1.5);
+            let t = p.md === 'mixed' ? Math.floor(random() * 3) : (p.md === 'circles' ? Math.floor(random() * 2) : 2);
+            c.fillStyle = pick(cols); c.beginPath();
+            if (t === 0) { c.arc(x, y, s / 2, 0, Math.PI * 2); c.fill(); }
+            else if (t === 1) { c.arc(x, y, s / 2, 0, Math.PI); c.fill(); }
+            else { c.fillRect(x, y, s, s / 2); }
+          }
+          c.globalAlpha = 1;
+        }
+      },
+
+      delaunay: {
+        name: "Geometric Web (Triangulation)", group: "Geometric",
+        params: {
+          n: { type: 'range', min: 10, max: 300, val: 50, label: "Vertices" },
+          d: { type: 'range', min: 10, max: 500, val: 150, label: "Connection Distance" },
+          st: { type: 'select', options: ['Fill', 'Wire'], val: 'Fill', label: "Polygon Style" },
+          lw: { type: 'range', min: 1, max: 20, val: 1, label: "Border Weight" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const pts = [];
+          for (let i = 0; i < p.n; i++) pts.push({ x: random() * w, y: random() * h });
+          c.lineWidth = p.lw; c.strokeStyle = cols[0];
+          for (let i = 0; i < p.n; i++) {
+            for (let j = i + 1; j < p.n; j++) {
+              for (let k = j + 1; k < p.n; k++) {
+                const d1 = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+                const d2 = Math.hypot(pts[j].x - pts[k].x, pts[j].y - pts[k].y);
+                const d3 = Math.hypot(pts[k].x - pts[i].x, pts[k].y - pts[i].y);
+                if (d1 < p.d && d2 < p.d && d3 < p.d) {
+                  c.beginPath();
+                  c.moveTo(pts[i].x, pts[i].y);
+                  c.lineTo(pts[j].x, pts[j].y);
+                  c.lineTo(pts[k].x, pts[k].y);
+                  c.closePath();
+                  if (p.st === 'Fill') { c.fillStyle = pick(cols); c.fill(); }
+                  c.stroke();
+                }
+              }
+            }
+          }
+        }
+      },
+
+      circMaze: {
+        name: "Concentric Maze", group: "Geometric",
+        params: {
+          sc: { type: 'range', min: 10, max: 100, val: 20, label: "Ring Spacing" },
+          gp: { type: 'range', min: 0, max: 100, val: 30, label: "Path Openings %" },
+          th: { type: 'range', min: 1, max: 50, val: 10, label: "Wall Thickness" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          c.lineWidth = p.th; c.lineCap = 'round'; const ox = w / 2, oy = h / 2;
+          for (let r = p.sc; r < Math.hypot(w, h); r += p.sc) {
+            c.strokeStyle = cols[Math.floor(r / p.sc) % cols.length];
+            let segs = Math.floor((Math.PI * 2 * r) / (p.sc * 2));
+            for (let s = 0; s < segs; s++) {
+              if (random() * 100 > p.gp) {
+                c.beginPath();
+                c.arc(ox, oy, r, s * (Math.PI * 2 / segs), (s + 1) * (Math.PI * 2 / segs) - 0.1);
+                c.stroke();
+              }
+            }
+          }
+        }
+      },
+
+      voronoiStained: {
+        name: "Stained Glass Cells", group: "Geometric",
+        params: {
+          n: { type: 'range', min: 10, max: 500, val: 50, label: "Cell Count" },
+          lw: { type: 'range', min: 1, max: 20, val: 3, label: "Lead Border Width" },
+          shd: { type: 'select', options: ['Off', 'Subtle Shade'], val: 'Off', label: "Light Shading" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const pts = [];
+          for (let i = 0; i < p.n; i++) pts.push({ x: random() * w, y: random() * h, c: pick(cols) });
+          const id = c.createImageData(w, h), dt = id.data;
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let md = Infinity, md2 = Infinity, mp = null;
+              for (let i = 0; i < p.n; i++) {
+                let d = (pts[i].x - x) ** 2 + (pts[i].y - y) ** 2;
+                if (d < md) { md2 = md; md = d; mp = pts[i]; }
+                else if (d < md2) { md2 = d; }
+              }
+              let rgb = [mp.c].map(cl => { const n = parseInt(cl.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; })[0];
+              if (p.shd === 'Subtle Shade') {
+                let f = 0.85 + (Math.sin(x * 0.05 + y * 0.05) * 0.15);
+                rgb = [rgb[0] * f, rgb[1] * f, rgb[2] * f];
+              }
+              if (Math.sqrt(md2) - Math.sqrt(md) < p.lw) { rgb = [0, 0, 0]; }
+              let idx = (y * w + x) * 4;
+              dt[idx] = rgb[0]; dt[idx + 1] = rgb[1]; dt[idx + 2] = rgb[2]; dt[idx + 3] = 255;
+            }
+          }
+          c.putImageData(id, 0, 0);
+        }
+      },
+
+      concentricPolygons: {
+        name: "Hypnotic Nesting Shapes", group: "Geometric",
+        params: {
+          sd: { type: 'range', min: 3, max: 12, val: 6, label: "Corner Count" },
+          n: { type: 'range', min: 5, max: 80, val: 26, label: "Nested Rings" },
+          rt: { type: 'range', min: 0, max: 90, val: 6, label: "Angle Step" },
+          sc: { type: 'range', min: 20, max: 98, val: 91, label: "Inward Scale %" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.translate(w / 2, h / 2);
+          let r = Math.hypot(w, h) / 1.8;
+          for (let i = 0; i < p.n; i++) {
+            c.beginPath();
+            for (let s = 0; s <= p.sd; s++) {
+              let a = s * (Math.PI * 2 / p.sd);
+              let nx = r * Math.cos(a), ny = r * Math.sin(a);
+              if (s === 0) c.moveTo(nx, ny); else c.lineTo(nx, ny);
+            }
+            c.fillStyle = cols[i % cols.length]; c.fill();
+            c.strokeStyle = bgColor; c.lineWidth = 2; c.stroke();
+            r *= p.sc / 100; c.rotate(p.rt * Math.PI / 180);
+          }
+          c.translate(-w / 2, -h / 2);
+        }
+      },
+
+      kaleidoscope: {
+        name: "Kaleidoscope Mandala", group: "Geometric",
+        params: {
+          f: { type: 'range', min: 2, max: 64, val: 12, label: "Mirror Folds" },
+          d: { type: 'range', min: 10, max: 5000, val: 600, label: "Ornament Density" },
+          st: { type: 'select', options: ['organic', 'geometric', 'orbital'], val: 'organic', label: "Ornament Style" },
+          hl: { type: 'range', min: 0, max: 100, val: 0, label: "Center Hole %" },
+          rad: { type: 'range', min: 50, max: 200, val: 120, label: "Radius %" },
+          thk: { type: 'range', min: 1, max: 100, val: 3, label: "Line Weight" }
+        },
+        render: (c, w, h, p, cols) => {
+          const fl = p.f % 2 !== 0 ? p.f + 1 : p.f, wa = Math.PI * 2 / fl, r = Math.sqrt(w * w + h * h) * (p.rad / 100);
+          const sb = document.createElement('canvas'); sb.width = r; sb.height = r;
+          const sx = sb.getContext('2d', { willReadFrequently: true });
+          sx.fillStyle = bgColor; sx.fillRect(0, 0, r, r); sx.lineCap = 'round'; sx.lineJoin = 'round';
+          for (let i = 0; i < p.d; i++) {
+            sx.fillStyle = pick(cols); sx.strokeStyle = pick(cols); sx.lineWidth = randomRange(1, p.thk); sx.globalAlpha = randomRange(0.4, 1);
+            const rd = randomRange(r * (p.hl / 100), r), th = randomRange(-0.1, wa + 0.1), px = Math.cos(th) * rd, py = Math.sin(th) * rd, sz = randomRange(5, p.thk * 15);
+            sx.save(); sx.translate(px, py); sx.rotate(random() * Math.PI * 2);
+            if (p.st === 'geometric') {
+              if (random() > 0.5) sx.fillRect(-sz / 2, -sz / 2, sz, sz); else { sx.beginPath(); sx.arc(0, 0, sz / 2, 0, Math.PI * 2); sx.fill(); }
+              if (random() > 0.5) sx.strokeRect(-sz / 2, -sz / 2, sz * 1.4, sz * 1.4);
+            } else if (p.st === 'organic') {
+              sx.beginPath(); sx.moveTo(-sz, 0); sx.quadraticCurveTo(0, sz * 1.5, sz, 0); sx.quadraticCurveTo(0, -sz * 0.5, -sz, 0); sx.fill();
+              if (random() > 0.3) { sx.beginPath(); sx.moveTo(0, 0); sx.lineTo(sz * 2, randomRange(-sz, sz)); sx.stroke(); }
+            } else {
+              sx.beginPath(); sx.arc(0, 0, sz, 0, randomRange(Math.PI / 2, Math.PI * 1.5)); sx.stroke();
+              if (random() > 0.8) { sx.beginPath(); sx.arc(sz, 0, sz / 4, 0, Math.PI * 2); sx.fill(); }
+            }
+            sx.restore();
+          }
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.translate(w / 2, h / 2);
+          for (let f = 0; f < fl; f++) {
+            c.save(); c.rotate(f * wa); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, -0.01, wa + 0.01); c.clip();
+            if (f % 2 === 1) { c.scale(1, -1); c.rotate(-wa); }
+            c.drawImage(sb, 0, 0); c.restore();
+          }
+          c.translate(-w / 2, -h / 2);
+        }
+      },
+
+      polarPoints: {
+        name: "Harmonic Polar Array", group: "Geometric",
+        params: {
+          den: { type: 'range', min: 100, max: 50000, val: 4000, label: "Dot Density" },
+          a: { type: 'range', min: 1, max: 1000, val: 120, label: "Wave Intensity" },
+          f: { type: 'range', min: 1, max: 200, val: 10, label: "Rhythm" },
+          tw: { type: 'range', min: 0, max: 360, val: 0, label: "Vortex Twist" },
+          sz: { type: 'range', min: 1, max: 20, val: 2, label: "Dot Radius" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const cw = Math.floor(Math.sqrt(p.den)), ch = cw, sx = w / cw, sy = h / ch, f = p.f / 1000;
+          for (let r = 0; r <= ch; r++) {
+            for (let cl = 0; cl <= cw; cl++) {
+              let x = cl * sx, y = r * sy, nx = x + Math.sin(y * f) * p.a, ny = y + Math.cos(x * f) * p.a;
+              if (p.tw > 0) {
+                let cx = w / 2, cy = h / 2, ang = Math.atan2(ny - cy, nx - cx) + (p.tw * Math.PI / 180) * (Math.hypot(nx - cx, ny - cy) / w);
+                let d = Math.hypot(nx - cx, ny - cy);
+                nx = cx + Math.cos(ang) * d; ny = cy + Math.sin(ang) * d;
+              }
+              c.beginPath(); c.arc(nx, ny, randomRange(1, Math.max(2, p.sz)), 0, Math.PI * 2); c.fillStyle = pick(cols); c.fill();
+            }
+          }
+        }
+      },
+
+      truchetGrid: {
+        name: "Labyrinth Curves (Truchet)", group: "Patterns",
+        params: {
+          s: { type: 'range', min: 10, max: 200, val: 50, label: "Tile Size" },
+          t: { type: 'range', min: 1, max: 50, val: 12, label: "Line Width" },
+          st: { type: 'select', options: ['arcs', 'diagonals', 'mixed'], val: 'arcs', label: "Joint Shape" },
+          bg: { type: 'select', options: ['Transparent', 'Solid', 'Split'], val: 'Transparent', label: "Backing Fill" },
+          seg: { type: 'select', options: ['Off', 'On'], val: 'On', label: "Segment Colors" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineCap = 'round'; const s = p.s;
+          for (let y = 0; y < h; y += s) {
+            for (let x = 0; x < w; x += s) {
+              const f = random() > 0.5, cB = pick(cols), cA = pick(cols);
+              if (p.bg === 'Solid') { c.fillStyle = cB; c.fillRect(x, y, s + 1, s + 1); }
+              else if (p.bg === 'Split') {
+                c.fillStyle = cB; c.beginPath(); c.moveTo(x, y); f ? c.lineTo(x + s, y) : c.lineTo(x + s, y + s); f ? c.lineTo(x, y + s) : c.lineTo(x, y + s); c.fill();
+                c.fillStyle = cA; c.beginPath(); c.moveTo(x + s, y + s); f ? c.lineTo(x + s, y) : c.lineTo(x, y); f ? c.lineTo(x, y + s) : c.lineTo(x + s, y); c.fill();
+              }
+              c.lineWidth = p.t; const typ = p.st === 'mixed' ? (random() > 0.5 ? 'arcs' : 'diagonals') : p.st;
+              let lc1 = pick(cols), lc2 = p.seg === 'On' ? pick(cols) : lc1; c.beginPath(); c.strokeStyle = lc1;
+              if (typ === 'diagonals') {
+                f ? (c.moveTo(x, y), c.lineTo(x + s, y + s)) : (c.moveTo(x + s, y), c.lineTo(x, y + s)); c.stroke();
+              } else {
+                f ? (c.arc(x, y, s / 2, 0, Math.PI / 2), c.stroke(), c.beginPath(), c.strokeStyle = lc2, c.arc(x + s, y + s, s / 2, Math.PI, Math.PI * 1.5)) :
+                    (c.arc(x + s, y, s / 2, Math.PI / 2, Math.PI), c.stroke(), c.beginPath(), c.strokeStyle = lc2, c.arc(x, y + s, s / 2, Math.PI * 1.5, Math.PI * 2));
+                c.stroke();
+              }
+            }
+          }
+        }
+      },
+
+      symmPixelArt: {
+        name: "Retro Pixel Tapestry", group: "Patterns",
+        params: {
+          grid: { type: 'range', min: 10, max: 300, val: 80, label: "Pixel Density" },
+          comp: { type: 'range', min: 1, max: 100, val: 25, label: "Cluster Spread" },
+          th: { type: 'range', min: 1, max: 100, val: 20, label: "Coverage %" },
+          dot: { type: 'range', min: 10, max: 100, val: 40, label: "Dot Centers" },
+          inv: { type: 'select', options: ['No', 'Yes'], val: 'No', label: "Invert Colors" }
+        },
+        render: (c, w, h, p, cols) => {
+          let ca = p.inv === 'Yes' ? [...cols].reverse() : cols; c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const s = Math.max(2, Math.floor(Math.min(w, h) / p.grid)), cw = Math.ceil(w / s), ch = Math.ceil(h / s);
+          for (let y = 0; y < ch; y++) {
+            for (let x = 0; x < cw; x++) {
+              let n = noise2D(x * (p.comp / 100), y * (p.comp / 100)), r = (x ^ y) % (p.comp / 5 | 1);
+              if (n > p.th / 100 || r === 0) {
+                c.fillStyle = ca[Math.floor(Math.abs(n * 15) + r) % ca.length];
+                c.fillRect(x * s, y * s, s + 1, s + 1);
+                if (n > p.th / 100 + 0.2 && s > 6 && x % 2 === 0) {
+                  c.fillStyle = bgColor; let ds = s * (p.dot / 100);
+                  c.fillRect(x * s + (s - ds) / 2, y * s + (s - ds) / 2, ds, ds);
+                }
+              }
+            }
+          }
+        }
+      },
+
+      hexGrid: {
+        name: "Hexagonal Lattice", group: "Patterns",
+        params: {
+          s: { type: 'range', min: 5, max: 100, val: 20, label: "Hexagon Radius" },
+          th: { type: 'range', min: 0, max: 10, val: 1, label: "Border Thickness" },
+          md: { type: 'select', options: ['Solid', 'Hollow'], val: 'Solid', label: "Fill Mode" },
+          gp: { type: 'range', min: 0, max: 20, val: 0, label: "Spacing Gap" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const r = p.s, hw = Math.sqrt(3) * r, hh = 2 * r; c.lineWidth = p.th;
+          for (let y = -hh; y < h + hh; y += hh * 0.75) {
+            for (let x = -hw; x < w + hw; x += hw) {
+              let cx = x;
+              if (Math.round(y / (hh * 0.75)) % 2 !== 0) cx += hw / 2;
+              c.beginPath();
+              for (let i = 0; i < 6; i++) {
+                let a = Math.PI / 180 * (60 * i + 30);
+                let nx = cx + (r - p.gp) * Math.cos(a), ny = y + (r - p.gp) * Math.sin(a);
+                if (i === 0) c.moveTo(nx, ny); else c.lineTo(nx, ny);
+              }
+              c.closePath();
+              c.fillStyle = cols[hash(x, y) * 1000 % cols.length | 0];
+              c.strokeStyle = bgColor;
+              if (p.md === 'Solid') c.fill();
+              if (p.th > 0) c.stroke();
+            }
+          }
+        }
+      },
+
+      halftone: {
+        name: "Print Screen Halftone", group: "Patterns",
+        params: {
+          sc: { type: 'range', min: 5, max: 100, val: 20, label: "Dot Diameter" },
+          a: { type: 'range', min: 0, max: 90, val: 15, label: "Screen Angle" },
+          t: { type: 'select', options: ['circles', 'squares'], val: 'circles', label: "Dot Shape" },
+          nv: { type: 'range', min: 1, max: 200, val: 100, label: "Wave Frequency" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const r = p.a * Math.PI / 180, d = Math.hypot(w, h) * 1.5;
+          c.save(); c.translate(w / 2, h / 2); c.rotate(r); c.translate(-d / 2, -d / 2);
+          for (let y = 0; y < d; y += p.sc) {
+            for (let x = 0; x < d; x += p.sc) {
+              let n = noise2D(x / (p.nv * 2), y / (p.nv * 2)) * 0.5 + 0.5;
+              let ci = Math.floor((n + noise2D(x / 50, y / 50) * 0.5) * cols.length) % cols.length;
+              if (ci < 0) ci += cols.length;
+              c.fillStyle = cols[ci];
+              if (p.t === 'circles') {
+                c.beginPath(); c.arc(x, y, (p.sc / 2) * n, 0, Math.PI * 2); c.fill();
+              } else {
+                let sz = p.sc * n; c.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+              }
+            }
+          }
+          c.restore();
+        }
+      },
+
+      unifiedFlow: {
+        name: "Flow Field Streamlines", group: "Linear Geometry",
+        params: {
+          den: { type: 'range', min: 100, max: 20000, val: 3000, label: "Particle Stream" },
+          th: { type: 'range', min: 0.1, max: 20, val: 2, label: "Stream Width" },
+          sc: { type: 'range', min: 1, max: 500, val: 50, label: "Turbulence" },
+          len: { type: 'range', min: 10, max: 500, val: 120, label: "Stream Length" },
+          crv: { type: 'range', min: 0.1, max: 20, val: 5, label: "Curvature" },
+          al: { type: 'range', min: 10, max: 100, val: 80, label: "Opacity %" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineCap = 'round'; c.lineJoin = 'round';
+          const ns = p.sc / 10000, cm = p.crv * Math.PI;
+          for (let i = 0; i < p.den; i++) {
+            let x = random() * w, y = random() * h;
+            c.beginPath(); c.moveTo(x, y);
+            c.strokeStyle = pick(cols);
+            c.globalAlpha = p.al / 100;
+            c.lineWidth = randomRange(0.1, p.th);
+            let l = p.len * randomRange(0.5, 1.5);
+            for (let s = 0; s < l; s++) {
+              let n1 = noise2D(x * ns, y * ns), n2 = noise2D(x * ns * 2.5, y * ns * 2.5) * 0.5, a = (n1 + n2) * cm;
+              x += Math.cos(a) * 1.5; y += Math.sin(a) * 1.5;
+              c.lineTo(x, y);
+            }
+            c.stroke();
+          }
+          c.globalAlpha = 1;
+        }
+      },
+
+      opArt: {
+        name: "Op-Art Illusions", group: "Linear Geometry",
+        params: {
+          style: { type: 'select', options: ['Concentric Ripples', 'Horizontal Waves', 'Vertical Waves', 'Radial Rays'], val: 'Concentric Ripples', label: "Pattern Style" },
+          freq: { type: 'range', min: 2, max: 80, val: 16, label: "Line Density" },
+          warp: { type: 'range', min: 5, max: 300, val: 65, label: "Distortion" },
+          weight: { type: 'range', min: 1, max: 20, val: 3, label: "Line Thickness" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineWidth = p.weight;
+          const cx = w / 2, cy = h / 2;
+          if (p.style === 'Concentric Ripples') {
+            const maxR = Math.hypot(w, h);
+            for (let r = p.freq; r < maxR; r += p.freq) {
+              c.beginPath(); c.strokeStyle = cols[Math.floor(r / p.freq) % cols.length];
+              for (let i = 0; i <= 180; i++) {
+                const a = (i / 180) * Math.PI * 2;
+                const wave = Math.sin(a * 6 + r * 0.05) * (p.warp * 0.5);
+                const currentR = Math.max(0, r + wave);
+                const x = cx + Math.cos(a) * currentR, y = cy + Math.sin(a) * currentR;
+                if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+              }
+              c.closePath(); c.stroke();
+            }
+          } else if (p.style === 'Horizontal Waves') {
+            for (let y = 0; y < h; y += p.freq) {
+              c.beginPath(); c.strokeStyle = cols[Math.floor(y / p.freq) % cols.length];
+              for (let x = 0; x <= w; x += 10) {
+                const dist = Math.hypot(x - cx, y - cy);
+                const oy = y + Math.sin(dist / (p.warp || 1)) * 18;
+                if (x === 0) c.moveTo(x, oy); else c.lineTo(x, oy);
+              }
+              c.stroke();
+            }
+          } else if (p.style === 'Vertical Waves') {
+            for (let x = 0; x < w; x += p.freq) {
+              c.beginPath(); c.strokeStyle = cols[Math.floor(x / p.freq) % cols.length];
+              for (let y = 0; y <= h; y += 10) {
+                const dist = Math.hypot(x - cx, y - cy);
+                const ox = x + Math.cos(dist / (p.warp || 1)) * 18;
+                if (y === 0) c.moveTo(ox, y); else c.lineTo(ox, y);
+              }
+              c.stroke();
+            }
+          } else {
+            const rays = Math.floor(p.freq * 2);
+            for (let i = 0; i < rays; i++) {
+              const a = (i / rays) * Math.PI * 2;
+              c.strokeStyle = cols[i % cols.length];
+              c.beginPath(); c.moveTo(cx, cy);
+              const maxDist = Math.hypot(w, h);
+              const endX = cx + Math.cos(a + Math.sin(maxDist / p.warp) * 0.5) * maxDist;
+              const endY = cy + Math.sin(a + Math.sin(maxDist / p.warp) * 0.5) * maxDist;
+              c.lineTo(endX, endY); c.stroke();
+            }
+          }
+        }
+      },
+
+      spirograph: {
+        name: "Geometric Wheel (Spirograph)", group: "Linear Geometry",
+        params: {
+          loops: { type: 'range', min: 1, max: 12, val: 4, label: "Ring Sets" },
+          R: { type: 'range', min: 40, max: 500, val: 160, label: "Base Radius" },
+          r: { type: 'range', min: 5, max: 300, val: 68, label: "Wheel Gear" },
+          d: { type: 'range', min: 10, max: 400, val: 110, label: "Pen Reach" },
+          weight: { type: 'range', min: 0.5, max: 10, val: 1.5, label: "Line Weight" },
+          fillCanvas: { type: 'select', options: ['Yes', 'No'], val: 'Yes', label: "Fill Entire Canvas" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineWidth = p.weight;
+          const loopCount = Math.floor(p.loops);
+          const maxDim = Math.min(w, h) * 0.48;
+          for (let k = 0; k < loopCount; k++) {
+            c.save(); c.translate(w / 2, h / 2);
+            c.rotate((k * (360 / loopCount)) * Math.PI / 180);
+            const scaleMultiplier = p.fillCanvas === 'Yes' ? (0.4 + (k / loopCount) * 0.8) : (1 + k * 0.15);
+            const curR = (p.R * scaleMultiplier) % maxDim + 30;
+            const curr = Math.max(2, p.r * (1 + k * 0.1));
+            const curd = p.d * (1 + k * 0.2);
+            c.strokeStyle = cols[k % cols.length];
+            c.beginPath();
+            for (let th = 0; th < Math.PI * 30; th += 0.04) {
+              const x = (curR - curr) * Math.cos(th) + curd * Math.cos((curR - curr) / curr * th);
+              const y = (curR - curr) * Math.sin(th) - curd * Math.sin((curR - curr) / curr * th);
+              if (th === 0) c.moveTo(x, y); else c.lineTo(x, y);
+            }
+            c.stroke(); c.restore();
+          }
+        }
+      },
+
+      radialBurst: {
+        name: "Radial Light Burst", group: "Linear Geometry",
+        params: {
+          n: { type: 'range', min: 10, max: 1000, val: 200, label: "Ray Count" },
+          r1: { type: 'range', min: 0, max: 100, val: 10, label: "Center Core %" },
+          r2: { type: 'range', min: 10, max: 200, val: 100, label: "Outer Edge %" },
+          t: { type: 'range', min: 1, max: 50, val: 2, label: "Ray Width" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.translate(w / 2, h / 2);
+          c.lineWidth = p.t; c.lineCap = 'round'; const d = Math.min(w, h);
+          for (let i = 0; i < p.n; i++) {
+            c.beginPath(); c.strokeStyle = pick(cols);
+            let a = random() * Math.PI * 2, ir = d * (p.r1 / 100), or = d * (p.r2 / 100) * randomRange(0.5, 1.5);
+            c.moveTo(Math.cos(a) * ir, Math.sin(a) * ir);
+            c.lineTo(Math.cos(a) * or, Math.sin(a) * or);
+            c.stroke();
+          }
+          c.translate(-w / 2, -h / 2);
+        }
+      },
+
+      constellation: {
+        name: "Constellation Web", group: "Particles",
+        params: {
+          n: { type: 'range', min: 50, max: 3000, val: 400, label: "Node Stars" },
+          d: { type: 'range', min: 10, max: 500, val: 100, label: "Connection Distance" },
+          s: { type: 'range', min: 1, max: 30, val: 5, label: "Node Size" },
+          crv: { type: 'range', min: 0, max: 100, val: 0, label: "Curved Threads" },
+          lw: { type: 'range', min: 1, max: 20, val: 2, label: "Line Thickness" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const pts = [];
+          for (let i = 0; i < p.n; i++) pts.push({ x: randomRange(-50, w + 50), y: randomRange(-50, h + 50), r: randomRange(1, p.s), c: pick(cols) });
+          c.lineCap = 'round';
+          for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+              const ds = (pts[i].x - pts[j].x) ** 2 + (pts[i].y - pts[j].y) ** 2;
+              if (ds < p.d * p.d) {
+                c.strokeStyle = pts[i].c; c.globalAlpha = (1 - Math.sqrt(ds) / p.d) ** 2 * 0.8;
+                c.lineWidth = randomRange(0.2, p.lw); c.beginPath(); c.moveTo(pts[i].x, pts[i].y);
+                if (p.crv > 0) c.quadraticCurveTo((pts[i].x + pts[j].x) / 2 + randomRange(-p.crv, p.crv), (pts[i].y + pts[j].y) / 2 + randomRange(-p.crv, p.crv), pts[j].x, pts[j].y);
+                else c.lineTo(pts[j].x, pts[j].y);
+                c.stroke();
+              }
+            }
+          }
+          c.globalAlpha = 1;
+          pts.forEach(pt => { c.fillStyle = pt.c; c.beginPath(); c.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2); c.fill(); });
+        }
+      },
+
+      vortexBlocks: {
+        name: "Vortex Ribbon Blocks", group: "Particles",
+        params: {
+          den: { type: 'range', min: 10, max: 5000, val: 200, label: "Block Count" },
+          sc: { type: 'range', min: 1, max: 500, val: 50, label: "Swirl Noise" },
+          len: { type: 'range', min: 5, max: 300, val: 30, label: "Block Size" },
+          rot: { type: 'range', min: 1, max: 100, val: 40, label: "Twist Steps" },
+          op: { type: 'range', min: 10, max: 100, val: 100, label: "Opacity %" },
+          bm: { type: 'select', options: ['source-over', 'screen', 'multiply'], val: 'source-over', label: "Blend Mode" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const ns = p.sc / 10000;
+          c.globalCompositeOperation = p.bm; c.globalAlpha = p.op / 100;
+          for (let i = 0; i < p.den; i++) {
+            let x = random() * w, y = random() * h, col = pick(cols);
+            for (let s = 0; s < p.rot; s++) {
+              let n = noise2D(x * ns, y * ns) * Math.PI * 4;
+              x += Math.cos(n) * p.len * 1.5; y += Math.sin(n) * p.len * 1.5;
+              c.save(); c.translate(x, y); c.rotate(n);
+              c.fillStyle = col; c.strokeStyle = col; c.lineWidth = 1;
+              c.fillRect(0, -p.len / 4, p.len, p.len / 2); c.strokeRect(0, -p.len / 4, p.len, p.len / 2);
+              c.restore();
+            }
+          }
+          c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+        }
+      },
+
+      flowField: {
+        name: "Flow Field Particles", group: "Particles",
+        params: {
+          n: { type: 'range', min: 100, max: 20000, val: 2000, label: "Particle Dust" },
+          sc: { type: 'range', min: 1, max: 500, val: 50, label: "Turbulence" },
+          ln: { type: 'range', min: 10, max: 200, val: 50, label: "Path Trace" },
+          th: { type: 'range', min: 1, max: 10, val: 1.5, label: "Particle Size" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const ns = p.sc / 10000;
+          for (let i = 0; i < p.n; i++) {
+            let x = random() * w, y = random() * h; c.fillStyle = pick(cols);
+            for (let s = 0; s < p.ln; s++) {
+              let a = noise2D(x * ns, y * ns) * Math.PI * 4;
+              x += Math.cos(a) * 2; y += Math.sin(a) * 2;
+              c.fillRect(x, y, p.th, p.th);
+            }
+          }
+        }
+      },
+
+      webglFractal: {
+        name: "Fractal Nebula (Julia)", group: "Mathematical",
+        params: {
+          zoom: { type: 'range', min: 1, max: 500, val: 20, label: "Fractal Zoom" },
+          cx: { type: 'range', min: -100, max: 100, val: -40, label: "Morph Center X" },
+          cy: { type: 'range', min: -100, max: 100, val: 60, label: "Morph Center Y" },
+          iter: { type: 'range', min: 10, max: 1000, val: 150, label: "Detail Steps" }
+        },
+        render: (c, w, h, p, cols) => {
+          const hx2rgb = (h) => { let n = parseInt(h.slice(1), 16); return [(n >> 16) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+          let fs = `precision highp float; uniform vec2 res; uniform float zoom, cx, cy, iter; uniform vec3 bg, c1, c2;
+            void main(){ vec2 z = (gl_FragCoord.xy - res/2.0) / min(res.x, res.y) * (10.0/zoom); float i=0.0;
+            for(int j=0; j<1000; j++){ if(float(j)>iter || dot(z,z)>16.0) break; z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + vec2(cx,cy); i++; }
+            float t = i/iter; vec3 col = mix(bg, mix(c1, c2, t*2.0), smoothstep(0.0, 1.0, t*1.5)); if(i>=iter) col = bg; gl_FragColor = vec4(col,1.0); }`;
+          runShader(c, w, h, fs, { zoom: p.zoom, cx: p.cx / 100, cy: p.cy / 100, iter: p.iter, bg: hx2rgb(bgColor), c1: hx2rgb(cols[0]), c2: hx2rgb(cols[Math.min(1, cols.length - 1)]) });
+        }
+      },
+
+      clifford: {
+        name: "Chaos Particle Attractor", group: "Mathematical",
+        params: {
+          iter: { type: 'range', min: 10, max: 1000, val: 200, label: "Particle Points (K)" },
+          a: { type: 'range', min: -30, max: 30, val: 15, label: "Orbit Parameter A" },
+          b: { type: 'range', min: -30, max: 30, val: -17, label: "Orbit Parameter B" },
+          c: { type: 'range', min: -30, max: 30, val: 17, label: "Orbit Parameter C" },
+          d: { type: 'range', min: -30, max: 30, val: 14, label: "Orbit Parameter D" },
+          sc: { type: 'range', min: 10, max: 100, val: 20, label: "Orbit Scale %" }
+        },
+        render: (ctx, w, h, p, cols) => {
+          ctx.fillStyle = bgColor; ctx.fillRect(0, 0, w, h);
+          let x = 0, y = 0, a = p.a / 10, b = p.b / 10, c = p.c / 10, d = p.d / 10;
+          const sc = Math.min(w, h) * (p.sc / 100); ctx.fillStyle = cols[0]; ctx.globalAlpha = 0.1;
+          for (let i = 0; i < p.iter * 1000; i++) {
+            let xn = Math.sin(a * y) + c * Math.cos(a * x), yn = Math.sin(b * x) + d * Math.cos(b * y);
+            x = xn; y = yn;
+            ctx.fillRect(w / 2 + x * sc, h / 2 + y * sc, 1.5, 1.5);
+            if (i % (p.iter * 200) === 0) ctx.fillStyle = pick(cols);
+          }
+          ctx.globalAlpha = 1;
+        }
+      },
+
+      harmonograph: {
+        name: "Pendulum Resonance (Harmonograph)", group: "Mathematical",
+        params: {
+          f1: { type: 'range', min: 1, max: 100, val: 39, label: "Rhythm 1" },
+          f2: { type: 'range', min: 1, max: 100, val: 40, label: "Rhythm 2" },
+          f3: { type: 'range', min: 1, max: 100, val: 40, label: "Rhythm 3" },
+          f4: { type: 'range', min: 1, max: 100, val: 39, label: "Rhythm 4" },
+          dp: { type: 'range', min: 1, max: 100, val: 5, label: "Friction Decay" },
+          st: { type: 'range', min: 10, max: 500, val: 200, label: "Cycles" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.strokeStyle = cols[0]; c.lineWidth = 0.5;
+          c.beginPath(); const sc = Math.min(w, h) * 0.4;
+          let p1 = random() * Math.PI, p2 = random() * Math.PI, p3 = random() * Math.PI, p4 = random() * Math.PI, d = p.dp / 10000;
+          for (let t = 0; t < p.st; t += 0.01) {
+            let x = sc * Math.exp(-d * t) * Math.sin(t * p.f1 / 10 + p1) + sc * Math.exp(-d * t) * Math.sin(t * p.f2 / 10 + p2);
+            let y = sc * Math.exp(-d * t) * Math.sin(t * p.f3 / 10 + p3) + sc * Math.exp(-d * t) * Math.sin(t * p.f4 / 10 + p4);
+            if (t === 0) c.moveTo(w / 2 + x, h / 2 + y); else c.lineTo(w / 2 + x, h / 2 + y);
+          }
+          c.stroke();
+        }
+      },
+
+      superformula: {
+        name: "Geometric Flora & Blooms", group: "Mathematical",
+        params: {
+          flowers: { type: 'range', min: 1, max: 12, val: 1, label: "Flower Count" },
+          layout: { type: 'select', options: ['Center Layered', 'Random Meadow', 'Circular Garden', 'Grid'], val: 'Center Layered', label: "Flower Layout" },
+          count: { type: 'range', min: 1, max: 16, val: 5, label: "Layers per Flower" },
+          m: { type: 'range', min: 1, max: 32, val: 6, label: "Petal Symmetry" },
+          n1: { type: 'range', min: 0.1, max: 10, val: 1.2, label: "Roundness" },
+          n2: { type: 'range', min: 0.1, max: 10, val: 1.0, label: "Pinch Form" },
+          sc: { type: 'range', min: 10, max: 200, val: 50, label: "Bloom Size" },
+          rotationStep: { type: 'range', min: 0, max: 90, val: 15, label: "Layer Twist" },
+          spread: { type: 'range', min: 0, max: 150, val: 20, label: "Layer Shift" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const flowerCount = Math.floor(p.flowers);
+          const layers = Math.floor(p.count);
+
+          const flowerCenters = [];
+          if (p.layout === 'Center Layered' || flowerCount === 1) {
+            for (let f = 0; f < flowerCount; f++) {
+              const ang = (f / flowerCount) * Math.PI * 2;
+              const rad = f === 0 ? 0 : Math.min(w, h) * 0.25;
+              flowerCenters.push({ x: w / 2 + Math.cos(ang) * rad, y: h / 2 + Math.sin(ang) * rad, scaleMult: f === 0 ? 1.0 : 0.65 });
+            }
+          } else if (p.layout === 'Circular Garden') {
+            for (let f = 0; f < flowerCount; f++) {
+              const ang = (f / flowerCount) * Math.PI * 2;
+              const rad = Math.min(w, h) * 0.32;
+              flowerCenters.push({ x: w / 2 + Math.cos(ang) * rad, y: h / 2 + Math.sin(ang) * rad, scaleMult: 0.6 });
+            }
+          } else if (p.layout === 'Grid') {
+            const colsGrid = Math.ceil(Math.sqrt(flowerCount));
+            const rowsGrid = Math.ceil(flowerCount / colsGrid);
+            for (let f = 0; f < flowerCount; f++) {
+              const gx = f % colsGrid;
+              const gy = Math.floor(f / colsGrid);
+              flowerCenters.push({
+                x: ((gx + 1) / (colsGrid + 1)) * w,
+                y: ((gy + 1) / (rowsGrid + 1)) * h,
+                scaleMult: 0.85 / Math.max(colsGrid, rowsGrid)
+              });
+            }
+          } else {
+            for (let f = 0; f < flowerCount; f++) {
+              flowerCenters.push({
+                x: randomRange(w * 0.15, w * 0.85),
+                y: randomRange(h * 0.15, h * 0.85),
+                scaleMult: randomRange(0.4, 0.8)
+              });
+            }
+          }
+
+          flowerCenters.forEach((fc, fIdx) => {
+            // Main flower / base layers drawn from largest (back) to smallest (front)
+            // Color index 0 is at index 0 (the largest back petal), so main color stays in the back
+            for (let i = 0; i < layers; i++) {
+              c.save();
+              const angleOffset = (i * p.rotationStep + fIdx * 25) * Math.PI / 180;
+              const spreadDist = i * p.spread * 0.4;
+              const ox = Math.cos(angleOffset) * spreadDist;
+              const oy = Math.sin(angleOffset) * spreadDist;
+
+              c.translate(fc.x + ox, fc.y + oy);
+              c.rotate(angleOffset);
+
+              // Largest size at i=0 (back), shrinking inward so main large color stays behind
+              const sizeFactor = 1 - (i / (layers + 1)) * 0.75;
+              const baseScale = Math.min(w, h) * (p.sc / 100) * fc.scaleMult * sizeFactor;
+
+              c.beginPath();
+              const mm = p.m + (i % 2);
+              const nn1 = Math.max(0.1, p.n1);
+              const nn2 = Math.max(0.1, p.n2);
+
+              for (let th = 0; th <= Math.PI * 2; th += 0.015) {
+                const part1 = Math.pow(Math.abs(Math.cos(mm * th / 4)), nn2);
+                const part2 = Math.pow(Math.abs(Math.sin(mm * th / 4)), nn2);
+                const r = Math.pow(part1 + part2, -1 / nn1);
+                const x = baseScale * r * Math.cos(th);
+                const y = baseScale * r * Math.sin(th);
+                if (th === 0) c.moveTo(x, y); else c.lineTo(x, y);
+              }
+              c.closePath();
+
+              const colorIdx = (i + fIdx) % cols.length;
+              c.fillStyle = cols[colorIdx];
+              c.globalAlpha = 0.82;
+              c.fill();
+              c.globalAlpha = 1.0;
+              c.lineWidth = 1.5;
+              c.strokeStyle = bgColor;
+              c.stroke();
+              c.restore();
+            }
+          });
+        }
+      },
+
+      chladni: {
+        name: "Acoustic Vibration Plates", group: "Mathematical",
+        params: {
+          colorCount: { type: 'range', min: 1, max: 12, val: 5, label: "Color Count" },
+          m: { type: 'range', min: 1, max: 14, val: 3, label: "Tone Pitch M" },
+          n: { type: 'range', min: 1, max: 14, val: 5, label: "Tone Pitch N" },
+          th: { type: 'range', min: 2, max: 80, val: 18, label: "Vibration Width" },
+          sc: { type: 'range', min: 20, max: 300, val: 100, label: "Wave Scale" }
+        },
+        render: (c, w, h, p, cols) => {
+          const id = c.createImageData(w, h);
+          const dt = id.data;
+          const maxColors = Math.min(Math.floor(p.colorCount), cols.length);
+          const activePalette = cols.slice(0, maxColors);
+          const bgRGB = [parseInt(bgColor.slice(1,3),16), parseInt(bgColor.slice(3,5),16), parseInt(bgColor.slice(5,7),16)];
+          const paletteRGB = activePalette.map(hex => {
+            const num = parseInt(hex.slice(1), 16);
+            return [num >> 16, (num >> 8) & 255, num & 255];
+          });
+          const zoom = 3.14159 * (3.0 / (p.sc / 100));
+          const minDim = Math.min(w, h);
+          const threshold = p.th / 100;
+          for (let y = 0; y < h; y++) {
+            const uy = (y / minDim) * zoom;
+            for (let x = 0; x < w; x++) {
+              const ux = (x / minDim) * zoom;
+              const val = Math.cos(p.n * ux) * Math.cos(p.m * uy) - Math.cos(p.m * ux) * Math.cos(p.n * uy);
+              const absVal = Math.abs(val);
+              const pIdx = (y * w + x) * 4;
+              if (absVal < threshold) {
+                const colorProg = (absVal / threshold) * paletteRGB.length;
+                const cIdx = Math.floor(colorProg) % paletteRGB.length;
+                const chosen = paletteRGB[cIdx] || paletteRGB[0];
+                dt[pIdx] = chosen[0]; dt[pIdx + 1] = chosen[1]; dt[pIdx + 2] = chosen[2];
+              } else {
+                dt[pIdx] = bgRGB[0]; dt[pIdx + 1] = bgRGB[1]; dt[pIdx + 2] = bgRGB[2];
+              }
+              dt[pIdx + 3] = 255;
+            }
+          }
+          c.putImageData(id, 0, 0);
+        }
+      },
+
+      sineOscillator: {
+        name: "Oscilloscope Waves", group: "Mathematical",
+        params: {
+          n: { type: 'range', min: 1, max: 100, val: 20, label: "Wave Count" },
+          f: { type: 'range', min: 1, max: 50, val: 10, label: "Frequency" },
+          a: { type: 'range', min: 10, max: 500, val: 100, label: "Wave Height" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineWidth = 2;
+          for (let i = 0; i < p.n; i++) {
+            c.beginPath(); c.strokeStyle = cols[i % cols.length];
+            let a = randomRange(10, p.a), ph = random() * Math.PI * 2;
+            for (let x = 0; x <= w; x += 5) {
+              let y = h / 2 + Math.sin(x * p.f / 1000 + ph) * a;
+              if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+            }
+            c.stroke();
+          }
+        }
+      },
+
+      quantumInterference: {
+        name: "Wave Interference Pools", group: "Mathematical",
+        params: {
+          colorSteps: { type: 'range', min: 1, max: 24, val: 8, label: "Color Steps" },
+          sources: { type: 'range', min: 2, max: 6, val: 3, label: "Wave Sources" },
+          f: { type: 'range', min: 1, max: 100, val: 24, label: "Wave Frequency" },
+          decay: { type: 'range', min: 0, max: 100, val: 30, label: "Distance Fade" },
+          mode: { type: 'select', options: ['Additive Ripple', 'Standing Nodes', 'Turbulent Phase'], val: 'Additive Ripple', label: "Interference Mode" },
+          zoom: { type: 'range', min: 10, max: 300, val: 100, label: "Field Zoom" }
+        },
+        render: (c, w, h, p, cols) => {
+          const id = c.createImageData(w, h), dt = id.data;
+          const bg = [parseInt(bgColor.slice(1,3),16), parseInt(bgColor.slice(3,5),16), parseInt(bgColor.slice(5,7),16)];
+          const rgb = cols.map(x => { const n = parseInt(x.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; });
           
-          for (let l = p.density; l > 0; l--) {
-            const layerRatio = l / p.density;
-            const bldgColor = colors[Math.floor((p.density - l) % colors.length)];
-            ctx.fillStyle = bldgColor; ctx.globalAlpha = (1 - (p.depth/100)) + (1 - layerRatio) * (p.depth/100);
+          const zm = p.zoom / 100;
+          const minDim = Math.min(w, h);
+          const numSources = Math.floor(p.sources);
+          const pts = [];
+          for (let s = 0; s < numSources; s++) {
+            const ang = (s / numSources) * Math.PI * 2;
+            const dist = minDim * 0.32;
+            pts.push({
+              x: w / 2 + Math.cos(ang) * dist,
+              y: h / 2 + Math.sin(ang) * dist
+            });
+          }
 
+          const steps = Math.max(1, Math.floor(p.colorSteps));
+          const decayRate = p.decay / 200;
+
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              let xx = (x - w / 2) * zm + w / 2;
+              let yy = (y - h / 2) * zm + h / 2;
+
+              let waveSum = 0;
+              for (let s = 0; s < pts.length; s++) {
+                const d = Math.hypot(xx - pts[s].x, yy - pts[s].y) / minDim * 12;
+                const falloff = 1 / (1 + d * decayRate);
+                if (p.mode === 'Standing Nodes') {
+                  waveSum += Math.cos(d * p.f) * falloff;
+                } else if (p.mode === 'Turbulent Phase') {
+                  waveSum += Math.sin(d * p.f + s * 1.5) * Math.cos(d * 0.5) * falloff;
+                } else {
+                  waveSum += Math.sin(d * p.f) * falloff;
+                }
+              }
+
+              let norm = (waveSum / numSources) * 0.5 + 0.5;
+              norm = Math.max(0, Math.min(0.999, norm));
+
+              let stepped = Math.floor(norm * steps) / steps;
+              const colIdx = Math.floor(stepped * rgb.length) % rgb.length;
+              const chosen = rgb[colIdx];
+
+              let i = (y * w + x) * 4;
+              if (norm < 0.05) {
+                dt[i] = bg[0]; dt[i + 1] = bg[1]; dt[i + 2] = bg[2];
+              } else {
+                dt[i] = chosen[0]; dt[i + 1] = chosen[1]; dt[i + 2] = chosen[2];
+              }
+              dt[i + 3] = 255;
+            }
+          }
+          c.putImageData(id, 0, 0);
+        }
+      },
+
+      lissajous: {
+        name: "Lissajous Loops", group: "Mathematical",
+        params: {
+          loops: { type: 'range', min: 1, max: 24, val: 6, label: "Loop Count" },
+          spread: { type: 'range', min: 10, max: 100, val: 95, label: "Canvas Reach %" },
+          a: { type: 'range', min: 1, max: 20, val: 5, label: "Harmonic A" },
+          b: { type: 'range', min: 1, max: 20, val: 4, label: "Harmonic B" },
+          dl: { type: 'range', min: 0, max: 180, val: 90, label: "Phase Shift" },
+          lw: { type: 'range', min: 0.5, max: 10, val: 1.5, label: "Line Thickness" },
+          multiMode: { type: 'select', options: ['Nested Waves', 'Canvas Fill Lattice', 'Radial Bloom'], val: 'Canvas Fill Lattice', label: "Distribution" }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          c.lineWidth = p.lw;
+          const count = Math.floor(p.loops);
+          const baseScX = (w * 0.48) * (p.spread / 100);
+          const baseScY = (h * 0.48) * (p.spread / 100);
+          const phase = p.dl * Math.PI / 180;
+
+          for (let k = 0; k < count; k++) {
+            c.save();
+            let ox = w / 2, oy = h / 2, curScX = baseScX, curScY = baseScY, localRot = 0;
+
+            if (p.multiMode === 'Canvas Fill Lattice') {
+              const prog = count > 1 ? k / (count - 1) : 0.5;
+              curScX = baseScX * (0.35 + 0.65 * prog);
+              curScY = baseScY * (0.35 + 0.65 * prog);
+              localRot = (k * 12) * Math.PI / 180;
+            } else if (p.multiMode === 'Radial Bloom') {
+              localRot = (k * (360 / count)) * Math.PI / 180;
+              curScX = baseScX * 0.85;
+              curScY = baseScY * 0.85;
+            } else {
+              const scaleStep = 1 - (k / count) * 0.7;
+              curScX = baseScX * scaleStep;
+              curScY = baseScY * scaleStep;
+            }
+
+            c.translate(ox, oy);
+            c.rotate(localRot);
+
+            c.strokeStyle = cols[k % cols.length];
+            c.beginPath();
+            const curPhase = phase + (k * 0.25);
+            for (let t = 0; t <= Math.PI * 2; t += 0.005) {
+              let x = curScX * Math.sin(p.a * t + curPhase);
+              let y = curScY * Math.sin(p.b * t);
+              if (t === 0) c.moveTo(x, y); else c.lineTo(x, y);
+            }
+            c.stroke();
+            c.restore();
+          }
+        }
+      },
+
+      skyline: {
+        name: "City Skyline", group: "Abstract Landscapes",
+        params: {
+          l: { type: 'range', min: 1, max: 20, val: 4, label: "City Layers" },
+          sc: { type: 'range', min: 5, max: 300, val: 40, label: "Building Width" },
+          wc: { type: 'range', min: 0, max: 100, val: 30, label: "Illuminated Windows %" },
+          dp: { type: 'range', min: 0, max: 100, val: 60, label: "Haze Depth" },
+          gp: { type: 'range', min: 0, max: 50, val: 0, label: "Alley Gap" },
+          an: { type: 'range', min: 0, max: 100, val: 20, label: "Antennas %" }
+        },
+        render: (c, w, h, p, cols) => {
+          const sg = c.createLinearGradient(0, 0, 0, h);
+          sg.addColorStop(0, bgColor); sg.addColorStop(1, cols[0]);
+          c.fillStyle = sg; c.fillRect(0, 0, w, h);
+          for (let l = p.l; l > 0; l--) {
+            const lr = l / p.l, bc = cols[Math.floor((p.l - l) % cols.length)];
+            c.fillStyle = bc; c.globalAlpha = (1 - (p.dp / 100)) + (1 - lr) * (p.dp / 100);
             let x = 0;
             while (x < w) {
-              const width = p.scale * randomRange(0.5, 2.0) * layerRatio, height = (h * 0.8) * random() * layerRatio + (h * 0.1), y = h - height;
-              ctx.fillRect(x, y, width+1, height+1); // Pixel gap fix
-
-              if (random() < (p.windowChance/100)) {
-                ctx.fillStyle = colors[colors.length - 1]; 
-                const winSize = width * 0.15, cols = Math.floor(width / (winSize * 1.5)), rows = Math.floor(height / (winSize * 2));
-                for (let wr = 1; wr < rows; wr++) {
-                  for (let wc = 1; wc <= cols; wc++) {
+              const wd = Math.max(5, p.sc * randomRange(0.5, 2) * lr), ht = (h * 0.8) * random() * lr + (h * 0.1), y = h - ht;
+              c.fillRect(x, y, wd + 1, ht + 1);
+              if (random() * 100 < p.an) c.fillRect(x + wd / 2, y - ht / 3, 2, ht / 3);
+              if (random() * 100 < p.wc) {
+                c.fillStyle = bgColor;
+                const ws = wd * 0.15, cls = Math.floor(wd / (ws * 1.5)), rws = Math.floor(ht / (ws * 2));
+                for (let wr = 1; wr < rws; wr++) {
+                  for (let wc = 1; wc <= cls; wc++) {
                     if (random() > 0.6) {
-                      ctx.globalAlpha = randomRange(0.2, 1.0);
-                      ctx.fillRect(x + wc * (winSize * 1.5) - winSize, y + wr * (winSize * 2), winSize, winSize * 1.5);
+                      c.globalAlpha = randomRange(0.2, 1);
+                      c.fillRect(x + wc * (ws * 1.5) - ws, y + wr * (ws * 2), ws, ws * 1.5);
                     }
                   }
                 }
-                ctx.fillStyle = bldgColor; ctx.globalAlpha = (1 - (p.depth/100)) + (1 - layerRatio) * (p.depth/100);
+                c.fillStyle = bc; c.globalAlpha = (1 - (p.dp / 100)) + (1 - lr) * (p.dp / 100);
               }
-              x += width;
+              x += wd + p.gp;
             }
           }
-          ctx.globalAlpha = 1.0;
+          c.globalAlpha = 1;
         }
       },
 
-      bgWaves: {
-        name: "Layered Waves",
+      waves: {
+        name: "Layered Ocean Waves", group: "Abstract Landscapes",
         params: {
-          density: { type: 'range', min: 1, max: 100, val: 8, label: "Wave Layers" },
-          scale: { type: 'range', min: 1, max: 1000, val: 200, label: "Wave Frequency" },
-          amplitude: { type: 'range', min: 0, max: 500, val: 60, label: "Wave Height" },
-          complexity: { type: 'range', min: 0, max: 100, val: 30, label: "Turbulence" }
+          l: { type: 'range', min: 1, max: 100, val: 8, label: "Wave Layers" },
+          f: { type: 'range', min: 1, max: 1000, val: 200, label: "Wave Frequency" },
+          a: { type: 'range', min: 0, max: 500, val: 60, label: "Wave Height" },
+          tb: { type: 'range', min: 0, max: 100, val: 30, label: "Turbulence" },
+          sp: { type: 'range', min: 0, max: 100, val: 10, label: "Layer Shift" },
+          st: { type: 'select', options: ['Fill', 'Lines', 'Both'], val: 'Both', label: "Render Style" }
         },
-        render: (ctx, w, h, p, colors) => {
-          ctx.fillStyle = colors[0]; ctx.fillRect(0, 0, w, h);
-          const baseFreq = 1 / p.scale, comp = p.complexity / 100;
-
-          for (let i = 0; i < p.density; i++) {
-            ctx.fillStyle = colors[(i + 1) % colors.length]; ctx.globalAlpha = 0.85;
-            ctx.beginPath(); ctx.moveTo(0, h);
-            const amplitude = randomRange(p.amplitude * 0.6, p.amplitude * 1.4), freq = baseFreq * randomRange(0.5, 1.5), phase = randomRange(0, Math.PI * 2), baseY = (h / p.density) * i + amplitude;
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const bf = 1 / p.f, cp = p.tb / 100;
+          for (let i = 0; i < p.l; i++) {
+            c.fillStyle = cols[i % cols.length]; c.globalAlpha = 0.85; c.beginPath(); c.moveTo(0, h);
+            const am = randomRange(p.a * 0.6, p.a * 1.4), fq = bf * randomRange(0.5, 1.5);
+            const ph = randomRange(0, Math.PI * 2) + (p.sp * i / 10), by = (h / p.l) * i + am;
             for (let x = 0; x <= w; x += 10) {
-              const y = baseY + Math.sin(x * freq + phase) * amplitude + Math.cos(x * freq * (1.5 + comp * 2) + phase) * (amplitude * comp);
-              if (x === 0) ctx.lineTo(x, y); else ctx.lineTo(x, y);
+              const y = by + Math.sin(x * fq + ph) * am + Math.cos(x * fq * (1.5 + cp * 2) + ph) * (am * cp);
+              if (x === 0) c.lineTo(x, y); else c.lineTo(x, y);
             }
-            ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.stroke();
+            c.lineTo(w, h); c.closePath();
+            if (p.st === 'Fill' || p.st === 'Both') c.fill();
+            if (p.st === 'Lines' || p.st === 'Both') { c.strokeStyle = bgColor; c.lineWidth = 2; c.stroke(); }
           }
-          ctx.globalAlpha = 1.0;
+          c.globalAlpha = 1;
         }
       },
 
-      bgGems: {
-        name: "Crystal Gems",
+      glitch: {
+        name: "Glitch & Signal Artifacts", group: "Abstract Landscapes",
         params: {
-          scale: { type: 'range', min: 10, max: 500, val: 80, label: "Facet Size" },
-          distortion: { type: 'range', min: 0, max: 200, val: 80, label: "Shatter Distortion" }
+          style: { type: 'select', options: ['RGB Slice Split', 'Data Bars', 'Pixel Scanlines', 'Corrupt Blocks'], val: 'RGB Slice Split', label: "Glitch Motif" },
+          amount: { type: 'range', min: 10, max: 800, val: 220, label: "Chaos Intensity" },
+          maxWidth: { type: 'range', min: 10, max: 600, val: 240, label: "Max Width" },
+          maxHeight: { type: 'range', min: 1, max: 120, val: 25, label: "Max Height" },
+          bleed: { type: 'range', min: 0, max: 100, val: 40, label: "Displacement" }
         },
-        render: (ctx, w, h, p, colors) => {
-          const spacing = p.scale, dist = p.distortion / 100, cols = Math.ceil(w / spacing) + 2, rows = Math.ceil(h / spacing) + 2, points = [];
-          for (let y = -1; y <= rows; y++) {
-            const row = [];
-            for (let x = -1; x <= cols; x++) row.push({ x: x * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing, y: y * spacing + randomRange(-0.5 * dist, 0.5 * dist) * spacing });
-            points.push(row);
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+          const baseCount = Math.floor(p.amount * 0.3);
+          for (let i = 0; i < baseCount; i++) {
+            c.fillStyle = pick(cols);
+            c.fillRect(random() * w, random() * h, randomRange(20, p.maxWidth), randomRange(2, p.maxHeight));
           }
-
-          for (let y = 0; y < points.length - 1; y++) {
-            for (let x = 0; x < points[y].length - 1; x++) {
-              const drawTri = (a, b, c) => {
-                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.closePath();
-                const grad = ctx.createLinearGradient(a.x, a.y, c.x, c.y); grad.addColorStop(0, pick(colors)); grad.addColorStop(1, pick(colors));
-                ctx.fillStyle = grad; ctx.fill();
-                ctx.strokeStyle = grad; ctx.lineWidth = 1.5; ctx.stroke(); // Fix subpixel aliasing
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1; ctx.stroke(); // Highlight
-              };
-              if ((x + y) % 2 === 0) { drawTri(points[y][x], points[y][x+1], points[y+1][x]); drawTri(points[y][x+1], points[y+1][x+1], points[y+1][x]); } 
-              else { drawTri(points[y][x], points[y][x+1], points[y+1][x+1]); drawTri(points[y][x], points[y+1][x+1], points[y+1][x]); }
+          if (p.style === 'RGB Slice Split') {
+            const slices = Math.floor(p.amount * 0.2);
+            for (let s = 0; s < slices; s++) {
+              const sy = random() * h, sh = randomRange(4, p.maxHeight);
+              const shift = (random() - 0.5) * p.bleed * 3;
+              c.save(); c.beginPath(); c.rect(0, sy, w, sh); c.clip();
+              c.fillStyle = pick(cols); c.globalAlpha = 0.6;
+              c.fillRect(shift, sy, w, sh); c.restore();
             }
+          } else if (p.style === 'Pixel Scanlines') {
+            c.fillStyle = bgColor;
+            for (let y = 0; y < h; y += 4) c.fillRect(0, y, w, 1.5);
           }
+          const artifacts = Math.floor(p.amount);
+          for (let i = 0; i < artifacts; i++) {
+            c.fillStyle = pick(cols); c.globalAlpha = randomRange(0.4, 0.95);
+            const x = random() * w, y = random() * h, bw = randomRange(5, p.maxWidth), bh = randomRange(1, p.maxHeight);
+            c.fillRect(x, y, bw, bh);
+            if (random() > 0.85) { c.strokeStyle = bgColor; c.lineWidth = 1; c.strokeRect(x, y, bw, bh); }
+          }
+          c.globalAlpha = 1.0;
         }
       }
     };
 
-    // --- UI CONTROLLER ---
     const uiEngineSelect = document.getElementById('engineSelect');
     const uiDynamicControls = document.getElementById('dynamicControls');
     const paletteContainer = document.getElementById("paletteContainer");
     const btnAddColor = document.getElementById("btnAddColor");
     const presetPalette = document.getElementById("presetPalette");
-    
-    const compScale = document.getElementById("compScale");
-    const compRotation = document.getElementById("compRotation");
-    const compOffsetX = document.getElementById("compOffsetX");
-    const compOffsetY = document.getElementById("compOffsetY");
-    const compGrain = document.getElementById("compGrain");
+    const paletteCountLabel = document.getElementById("paletteCount");
+    const bgSwatchWrap = document.getElementById("bgSwatchWrap"), bgColorPicker = document.getElementById("bgColorPicker");
 
-    Object.keys(ENGINES).forEach(key => uiEngineSelect.appendChild(new Option(ENGINES[key].name, key)));
+    const compMargin = document.getElementById("compMargin"), compZoom = document.getElementById("compZoom");
+    const compRotation = document.getElementById("compRotation"), compOffsetX = document.getElementById("compOffsetX"), compOffsetY = document.getElementById("compOffsetY");
+    const compGrain = document.getElementById("compGrain"), compSymmetry = document.getElementById("compSymmetry");
+
+    // Populate Groups & Engines
+    const engineGroups = {};
+    Object.entries(ENGINES).forEach(([k, e]) => {
+      if (!engineGroups[e.group]) engineGroups[e.group] = [];
+      engineGroups[e.group].push({ k, n: e.name });
+    });
+    Object.entries(engineGroups).forEach(([g, arr]) => {
+      const og = document.createElement('optgroup');
+      og.label = g;
+      arr.forEach(e => og.appendChild(new Option(e.n, e.k)));
+      uiEngineSelect.appendChild(og);
+    });
 
     function renderPaletteUI() {
-      paletteContainer.querySelectorAll('.swatch-wrap').forEach(el => el.remove());
+      paletteContainer.querySelectorAll('.swatch-wrap:not(.bg-swatch)').forEach(el => el.remove());
+      bgSwatchWrap.style.backgroundColor = bgColor;
+      bgColorPicker.value = bgColor;
+      paletteCountLabel.innerText = `${currentColors.length} / 20`;
+
       currentColors.forEach((hex, idx) => {
-        const wrap = document.createElement('div'); wrap.className = 'swatch-wrap'; wrap.style.backgroundColor = hex;
-        const input = document.createElement('input'); input.type = 'color'; input.value = hex;
-        input.addEventListener('input', (e) => { currentColors[idx] = e.target.value; wrap.style.backgroundColor = e.target.value; render(); });
-        wrap.addEventListener('dblclick', () => { if(currentColors.length > 2) { currentColors.splice(idx, 1); renderPaletteUI(); render(); }});
+        const wrap = document.createElement('div');
+        wrap.className = 'swatch-wrap';
+        wrap.style.backgroundColor = hex;
+
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.value = hex;
+        input.addEventListener('input', (e) => {
+          currentColors[idx] = e.target.value;
+          wrap.style.backgroundColor = e.target.value;
+          render();
+        });
+
+        // Visible delete badge
+        const del = document.createElement('div');
+        del.className = 'swatch-del';
+        del.innerHTML = '&times;';
+        del.title = 'Remove Color';
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentColors.length > 1) {
+            currentColors.splice(idx, 1);
+            renderPaletteUI();
+            render();
+          }
+        });
+
+        wrap.addEventListener('dblclick', () => {
+          if (currentColors.length > 1) {
+            currentColors.splice(idx, 1);
+            renderPaletteUI();
+            render();
+          }
+        });
+
+        wrap.appendChild(del);
         wrap.appendChild(input);
         paletteContainer.insertBefore(wrap, btnAddColor);
       });
     }
 
+    bgColorPicker.addEventListener('input', (e) => {
+      bgColor = e.target.value;
+      bgSwatchWrap.style.backgroundColor = bgColor;
+      render();
+    });
+
+    btnAddColor.addEventListener('click', () => {
+      if (currentColors.length < 20) {
+        currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
+        renderPaletteUI();
+        render();
+      }
+    });
+
     function buildDynamicUI() {
       const engine = ENGINES[uiEngineSelect.value];
       uiDynamicControls.innerHTML = '';
       Object.entries(engine.params).forEach(([key, conf]) => {
-        const wrap = document.createElement('div'); wrap.className = 'control-group';
+        const wrap = document.createElement('div');
+        wrap.className = 'control-group';
         if (conf.type === 'range') {
-          wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span><span class="val" id="val_${key}">${conf.val}</span></div>
-                            <input type="range" id="param_${key}" min="${conf.min}" max="${conf.max}" step="${(conf.max - conf.min) > 10 ? 1 : 0.1}" value="${conf.val}">`;
+          wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span><span class="val" id="val_${key}">${conf.val}</span></div><input type="range" id="param_${key}" min="${conf.min}" max="${conf.max}" step="${(conf.max - conf.min) > 10 ? 1 : 0.1}" value="${conf.val}">`;
           uiDynamicControls.appendChild(wrap);
           document.getElementById(`param_${key}`).addEventListener('input', (e) => {
             document.getElementById(`val_${key}`).innerText = e.target.value;
-            engine.params[key].val = parseFloat(e.target.value); render();
+            engine.params[key].val = parseFloat(e.target.value);
+            render();
           });
         } else if (conf.type === 'select') {
-          let opts = conf.options.map(opt => `<option value="${opt}" ${conf.val === opt ? 'selected' : ''}>${opt.toUpperCase()}</option>`).join('');
+          let opts = conf.options.map(opt => `<option value="${opt}" ${conf.val === opt ? 'selected' : ''}>${opt}</option>`).join('');
           wrap.innerHTML = `<div class="label-row"><span>${conf.label}</span></div><select id="param_${key}">${opts}</select>`;
           uiDynamicControls.appendChild(wrap);
-          document.getElementById(`param_${key}`).addEventListener('change', (e) => { engine.params[key].val = e.target.value; render(); });
+          document.getElementById(`param_${key}`).addEventListener('change', (e) => {
+            engine.params[key].val = e.target.value;
+            render();
+          });
         }
       });
     }
 
-    // --- POST PROCESSING ---
-    function applyGrainPass(amount) {
-      if(amount <= 0) return;
-      const w = canvas.width, h = canvas.height;
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const d = imgData.data;
-      const noiseMult = amount * 1.5; 
-      for(let i=0; i<d.length; i+=4) {
+    function applyGrainPass(amount, targetCtx, w, h) {
+      if (amount <= 0) return;
+      const imgData = targetCtx.getImageData(0, 0, w, h), d = imgData.data, noiseMult = amount * 1.5;
+      for (let i = 0; i < d.length; i += 4) {
         const noise = (Math.random() - 0.5) * noiseMult;
         d[i] = Math.min(255, Math.max(0, d[i] + noise));
-        d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise));
-        d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise));
+        d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + noise));
+        d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + noise));
       }
-      ctx.putImageData(imgData, 0, 0);
+      targetCtx.putImageData(imgData, 0, 0);
     }
 
-    // --- RENDER PIPELINE ---
+    function applyGlobalSymmetry(symType, rCtx, w, h) {
+      if (symType === 'None') return;
+      const tempCVS = document.createElement('canvas');
+      tempCVS.width = w; tempCVS.height = h;
+      const tCtx = tempCVS.getContext('2d', { willReadFrequently: true });
+      tCtx.drawImage(renderCanvas, 0, 0);
+      rCtx.fillStyle = bgColor;
+      rCtx.fillRect(0, 0, w, h);
+
+      if (symType === 'Horizontal') {
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h, 0, 0, w / 2, h);
+        rCtx.save(); rCtx.translate(w, 0); rCtx.scale(-1, 1);
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h, 0, 0, w / 2, h);
+        rCtx.restore();
+      } else if (symType === 'Vertical') {
+        rCtx.drawImage(tempCVS, 0, 0, w, h / 2, 0, 0, w, h / 2);
+        rCtx.save(); rCtx.translate(0, h); rCtx.scale(1, -1);
+        rCtx.drawImage(tempCVS, 0, 0, w, h / 2, 0, 0, w, h / 2);
+        rCtx.restore();
+      } else if (symType === 'Quad') {
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h / 2, 0, 0, w / 2, h / 2);
+        rCtx.save(); rCtx.translate(w, 0); rCtx.scale(-1, 1);
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h / 2, 0, 0, w / 2, h / 2);
+        rCtx.restore();
+        rCtx.save(); rCtx.translate(0, h); rCtx.scale(1, -1);
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h / 2, 0, 0, w / 2, h / 2);
+        rCtx.restore();
+        rCtx.save(); rCtx.translate(w, h); rCtx.scale(-1, -1);
+        rCtx.drawImage(tempCVS, 0, 0, w / 2, h / 2, 0, 0, w / 2, h / 2);
+        rCtx.restore();
+      }
+    }
+
     function render() {
-      globalSeed = parseInt(document.getElementById('paramSeed').value); 
-      const engine = ENGINES[uiEngineSelect.value];
-      const p = {}; Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
+      globalSeed = parseInt(document.getElementById('paramSeed').value);
+      const engine = ENGINES[uiEngineSelect.value], p = {};
+      Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
+
       const w = canvas.width, h = canvas.height;
+      const margin = parseFloat(compMargin.value);
+      const drawW = Math.max(1, w - margin * 2), drawH = Math.max(1, h - margin * 2);
 
-      ctx.fillStyle = currentColors[0]; ctx.fillRect(0, 0, w, h);
+      renderCanvas.width = drawW;
+      renderCanvas.height = drawH;
+      engine.render(renderCtx, drawW, drawH, p, currentColors);
+      applyGlobalSymmetry(compSymmetry.value, renderCtx, drawW, drawH);
 
-      const scale = parseFloat(compScale.value) / 100;
-      const rotationRad = (parseFloat(compRotation.value) * Math.PI) / 180;
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, w, h);
+
+      const zoom = parseFloat(compZoom.value) / 100;
+      const rot = parseFloat(compRotation.value) * Math.PI / 180;
       const ox = (parseFloat(compOffsetX.value) / 100) * w;
       const oy = (parseFloat(compOffsetY.value) / 100) * h;
 
-      ctx.save();
-      ctx.translate(w/2 + ox, h/2 + oy); 
-      ctx.rotate(rotationRad);
-      ctx.scale(scale, scale); 
-      ctx.translate(-w/2, -h/2);
-      
-      engine.render(ctx, w, h, p, currentColors);
-      
-      ctx.restore();
-      applyGrainPass(parseFloat(compGrain.value));
+      if (drawW > 0 && drawH > 0) {
+        ctx.save();
+        ctx.translate(w / 2 + ox, h / 2 + oy);
+        ctx.rotate(rot);
+        ctx.scale(zoom, zoom);
+        ctx.drawImage(renderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
+      }
+      applyGrainPass(parseFloat(compGrain.value), ctx, w, h);
     }
 
-    // --- LISTENERS ---
     uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); render(); });
-    btnAddColor.addEventListener('click', () => { currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')); renderPaletteUI(); render(); });
-    presetPalette.addEventListener('change', (e) => { if (PALETTES[e.target.value]) { currentColors = [...PALETTES[e.target.value]]; renderPaletteUI(); render(); }});
-    document.getElementById('btnRandColors').addEventListener('click', () => {
-      currentColors = generateRandomPalette(); presetPalette.value = ""; renderPaletteUI(); render();
+    presetPalette.addEventListener('change', (e) => {
+      if (PALETTES[e.target.value]) {
+        bgColor = PALETTES[e.target.value][0];
+        currentColors = PALETTES[e.target.value].slice(1);
+        renderPaletteUI();
+        render();
+      }
     });
-    
+
+    document.getElementById('btnRandColors').addEventListener('click', () => {
+      currentColors = generateRandomPalette();
+      presetPalette.value = "";
+      renderPaletteUI();
+      render();
+    });
+
     function updateGlobalUI() {
-      document.getElementById('valScale').innerText = compScale.value + '%';
+      document.getElementById('valMargin').innerText = compMargin.value + 'px';
+      document.getElementById('valZoom').innerText = compZoom.value + '%';
       document.getElementById('valRotation').innerText = compRotation.value + '°';
       document.getElementById('valOffsetX').innerText = compOffsetX.value + '%';
       document.getElementById('valOffsetY').innerText = compOffsetY.value + '%';
       document.getElementById('valGrain').innerText = compGrain.value + '%';
     }
-    
-    compScale.addEventListener('input', () => { updateGlobalUI(); render(); });
+
+    compMargin.addEventListener('input', () => { updateGlobalUI(); render(); });
+    compZoom.addEventListener('input', () => { updateGlobalUI(); render(); });
     compRotation.addEventListener('input', () => { updateGlobalUI(); render(); });
     compOffsetX.addEventListener('input', () => { updateGlobalUI(); render(); });
     compOffsetY.addEventListener('input', () => { updateGlobalUI(); render(); });
     compGrain.addEventListener('input', () => { updateGlobalUI(); render(); });
-    
+    compSymmetry.addEventListener('change', () => { render(); });
+
     document.getElementById('btnResetGlobals').addEventListener('click', () => {
-      compScale.value = 100; compRotation.value = 0; compOffsetX.value = 0; compOffsetY.value = 0; compGrain.value = 15;
-      updateGlobalUI(); render();
+      compMargin.value = 0; compZoom.value = 100; compRotation.value = 0;
+      compOffsetX.value = 0; compOffsetY.value = 0; compGrain.value = 15;
+      compSymmetry.value = 'None';
+      updateGlobalUI();
+      render();
     });
 
-    document.getElementById('paramSeed').addEventListener('input', e => { document.getElementById('valSeed').innerText = e.target.value; render(); });
-    
+    document.getElementById('paramSeed').addEventListener('input', e => {
+      document.getElementById('valSeed').innerText = e.target.value;
+      render();
+    });
+
+    document.getElementById('btnNewSeed').addEventListener('click', () => {
+      const newSeed = Math.floor(Math.random() * 99999);
+      document.getElementById('paramSeed').value = newSeed;
+      document.getElementById('valSeed').innerText = newSeed;
+      render();
+    });
+
     document.getElementById('btnRandomize').addEventListener('click', () => {
-      const engines = Object.keys(ENGINES);
-      uiEngineSelect.value = engines[Math.floor(Math.random() * engines.length)];
-      
+      const keys = Object.keys(ENGINES);
+      uiEngineSelect.value = keys[Math.floor(Math.random() * keys.length)];
       if (Math.random() > 0.5) {
-        const palettes = Object.keys(PALETTES);
-        presetPalette.value = palettes[Math.floor(Math.random() * palettes.length)];
-        currentColors = [...PALETTES[presetPalette.value]];
+        const pKeys = Object.keys(PALETTES);
+        presetPalette.value = pKeys[Math.floor(Math.random() * pKeys.length)];
+        bgColor = PALETTES[presetPalette.value][0];
+        currentColors = PALETTES[presetPalette.value].slice(1);
       } else {
-        currentColors = generateRandomPalette(); presetPalette.value = ""; 
+        currentColors = generateRandomPalette();
+        presetPalette.value = "";
       }
       renderPaletteUI();
-
       const engine = ENGINES[uiEngineSelect.value];
       Object.entries(engine.params).forEach(([key, conf]) => {
-        if(conf.type === 'range') conf.val = Math.floor(conf.min + Math.random() * (conf.max - conf.min + 1));
-        else if(conf.type === 'select') conf.val = conf.options[Math.floor(Math.random() * conf.options.length)];
+        if (conf.type === 'range') conf.val = Math.floor(conf.min + Math.random() * (conf.max - conf.min + 1));
+        else if (conf.type === 'select') conf.val = conf.options[Math.floor(Math.random() * conf.options.length)];
       });
       buildDynamicUI();
-
       const newSeed = Math.floor(Math.random() * 99999);
-      document.getElementById('paramSeed').value = newSeed; 
-      document.getElementById('valSeed').innerText = newSeed; 
-      
+      document.getElementById('paramSeed').value = newSeed;
+      document.getElementById('valSeed').innerText = newSeed;
       render();
     });
 
     document.getElementById('btnExport').addEventListener('click', async () => {
-      const dataUrl = canvas.toDataURL("image/png");
+      const exportCanvas = document.createElement('canvas');
+      const exportCtx = exportCanvas.getContext('2d');
+      const scaleFactor = 2;
+      exportCanvas.width = canvas.width * scaleFactor;
+      exportCanvas.height = canvas.height * scaleFactor;
+
+      exportCtx.fillStyle = bgColor;
+      exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+      exportCtx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+
+      const dataUrl = exportCanvas.toDataURL("image/png");
       const parts = dataUrl.split(';base64,');
       const contentType = parts[0].split(':')[1];
       const raw = window.atob(parts[1]);
       const uInt8Array = new Uint8Array(raw.length);
-      
-      for (let i = 0; i < raw.length; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
-      }
-      
+      for (let i = 0; i < raw.length; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
+
       const blob = new Blob([uInt8Array], { type: contentType });
-      const fileName = `RRON_GenStudio_${Date.now()}.png`;
+      const fileName = `RRON_Studio_${Date.now()}.png`;
 
       if (navigator.share) {
         const file = new File([blob], fileName, { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
-            await navigator.share({
-              files: [file],
-              title: 'RRON Generative Art',
-            });
-            return; 
-          } catch (err) {
-            console.log("Share cancelled or failed", err);
-          }
+            await navigator.share({ files: [file], title: 'RRON Generative Art' });
+            return;
+          } catch (err) {}
         }
       }
 
@@ -1294,20 +2640,25 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      setTimeout(() => URL.revokeObjectURL(url), 150);
     });
-    
+
     document.querySelectorAll(".aspect-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         document.querySelectorAll(".aspect-btn").forEach(b => b.classList.remove("active"));
         e.target.classList.add("active");
-        canvas.width = parseInt(e.target.dataset.w); canvas.height = parseInt(e.target.dataset.h); render();
+        canvas.width = parseInt(e.target.dataset.w);
+        canvas.height = parseInt(e.target.dataset.h);
+        render();
       });
     });
 
-    // --- INIT ---
-    canvas.width = 1080; canvas.height = 1920;
-    renderPaletteUI(); buildDynamicUI(); render();
+    // Start Studio
+    canvas.width = 1080;
+    canvas.height = 1920;
+    renderPaletteUI();
+    buildDynamicUI();
+    render();
   </script>
 </body>
 </html>
