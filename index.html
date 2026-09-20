@@ -3230,45 +3230,92 @@
       render();
     });
 
-    document.getElementById('btnExport').addEventListener('click', async () => {
-      const exportCanvas = document.createElement('canvas');
-      const exportCtx = exportCanvas.getContext('2d');
+document.getElementById('btnExport').addEventListener('click', () => {
       const scaleFactor = 2;
-      exportCanvas.width = canvas.width * scaleFactor;
-      exportCanvas.height = canvas.height * scaleFactor;
+      const targetW = canvas.width * scaleFactor;
+      const targetH = canvas.height * scaleFactor;
 
-      exportCtx.fillStyle = bgColor;
-      exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-      exportCtx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = targetW;
+      exportCanvas.height = targetH;
+      
+      // Force explicit sRGB color space to prevent OS photo viewers from dulling colors
+      const expCtx = exportCanvas.getContext('2d', { 
+        willReadFrequently: true,
+        colorSpace: 'srgb'
+      });
 
-      const dataUrl = exportCanvas.toDataURL("image/png");
-      const parts = dataUrl.split(';base64,');
-      const contentType = parts[0].split(':')[1];
-      const raw = window.atob(parts[1]);
-      const uInt8Array = new Uint8Array(raw.length);
-      for (let i = 0; i < raw.length; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
+      expCtx.fillStyle = bgColor;
+      expCtx.fillRect(0, 0, targetW, targetH);
 
-      const blob = new Blob([uInt8Array], { type: contentType });
-      const fileName = `RRON_Studio_${Date.now()}.png`;
+      const engine = ENGINES[uiEngineSelect.value];
+      const p = {};
+      Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
 
-      if (navigator.share) {
-        const file = new File([blob], fileName, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file], title: 'RRON Generative Art' });
-            return;
-          } catch (err) {}
-        }
+      const margin = parseFloat(compMargin.value) * scaleFactor;
+      const drawW = Math.max(1, targetW - margin * 2);
+      const drawH = Math.max(1, targetH - margin * 2);
+
+      const expRenderCanvas = document.createElement('canvas');
+      expRenderCanvas.width = drawW;
+      expRenderCanvas.height = drawH;
+      const expRenderCtx = expRenderCanvas.getContext('2d', { 
+        willReadFrequently: true,
+        colorSpace: 'srgb'
+      });
+
+      const savedSeed = globalSeed;
+      globalSeed = parseInt(document.getElementById('paramSeed').value);
+
+      engine.render(expRenderCtx, drawW, drawH, p, currentColors);
+      applyGlobalSymmetry(compSymmetry.value, expRenderCtx, drawW, drawH);
+
+      const zoom = parseFloat(compZoom.value) / 100;
+      const rot = parseFloat(compRotation.value) * Math.PI / 180;
+      const ox = (parseFloat(compOffsetX.value) / 100) * targetW;
+      const oy = (parseFloat(compOffsetY.value) / 100) * targetH;
+
+      if (drawW > 0 && drawH > 0) {
+        expCtx.save();
+        expCtx.translate(targetW / 2 + ox, targetH / 2 + oy);
+        expCtx.rotate(rot);
+        expCtx.scale(zoom, zoom);
+        expCtx.drawImage(expRenderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+        expCtx.restore();
       }
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.download = fileName;
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 150);
+      // Native grain pass without lifting black levels
+      const grainVal = parseFloat(compGrain.value);
+      if (grainVal > 0) {
+        applyGrainPass(grainVal, expCtx, targetW, targetH);
+      }
+
+      globalSeed = savedSeed;
+
+      // Use native toBlob instead of lossy atob() string conversion
+      exportCanvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const fileName = `RRON_Studio_${Date.now()}.png`;
+
+        if (navigator.share) {
+          const file = new File([blob], fileName, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: 'RRON Generative Art' });
+              return;
+            } catch (err) {}
+          }
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = fileName;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 200);
+      }, 'image/png');
     });
 
     document.querySelectorAll(".aspect-btn").forEach(btn => {
