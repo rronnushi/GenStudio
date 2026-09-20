@@ -1107,6 +1107,634 @@
         }
       },
 
+      seamlessGeometricTiling: {
+        name: "Geometric Wallpaper Tiling", group: "Patterns",
+        params: {
+          pattern: { 
+            type: 'select', 
+            options: [
+              'Concentric Circles',
+              'Zigzag Waves',
+              'Isometric Cubes',
+              'Diamond Rings',
+              'Hexagonal Grid',
+              'Greek Key Maze',
+              'Diagonal Stripes',
+              'Intersecting Sine Waves',
+              'Rounded Diamond Mesh',
+              'Scattered Minimal Squares',
+              'Dense Chevron Columns',
+              'Tartan Diamond Plaid',
+              'Interlocking Flower Circles',
+              'Nested Square Whirl',
+              'Polka Dot Bubble Grid',
+              'Triple-Track Weave'
+            ], 
+            val: 'Concentric Circles', 
+            label: "Pattern Motif" 
+          },
+          scale: { type: 'range', min: 20, max: 1200, val: 140, label: "Zoom / Scale" },
+          stripesPerCell: { type: 'range', min: 1, max: 64, val: 8, label: "Density" },
+          strokeW: { type: 'range', min: 0.5, max: 120, val: 8, label: "Line Weight" },
+          weightVar: { 
+            type: 'select', 
+            options: [
+              'Uniform Solid', 
+              'High-Contrast Dispersal',
+              'Randomized Weights', 
+              'Alternating Rhythms', 
+              'Harmonic Taper'
+            ], 
+            val: 'High-Contrast Dispersal', 
+            label: "Line Variation" 
+          },
+          weightSteps: { type: 'range', min: 2, max: 16, val: 8, label: "Weight Steps" },
+          transparency: { type: 'range', min: 0, max: 100, val: 0, label: "Transparency %" },
+          stagger: { 
+            type: 'select', 
+            options: ['Square Grid', 'Brick Stagger (X)', 'Column Stagger (Y)'], 
+            val: 'Square Grid', 
+            label: "Grid Stagger" 
+          },
+          haloStroke: { type: 'range', min: 0, max: 20, val: 0, label: "Backing Halo" },
+          snapAngle: { 
+            type: 'select', 
+            options: ['0°', '15°', '30°', '45°', '60°', '75°', '90°'], 
+            val: '0°', 
+            label: "Angle Snap" 
+          },
+          colorFlow: { 
+            type: 'select', 
+            options: [
+              'Black & White', 
+              'Inverted B&W', 
+              'Alternating', 
+              'Palette Flow', 
+              'Row Shift', 
+              'Random'
+            ], 
+            val: 'Black & White', 
+            label: "Color Mode" 
+          }
+        },
+        render: (c, w, h, p, cols) => {
+          const isBW = p.colorFlow === 'Black & White';
+          const isInvBW = p.colorFlow === 'Inverted B&W';
+
+          let effectiveBg = bgColor;
+          let primaryDark = '#000000';
+          let primaryLight = '#ffffff';
+
+          if (isBW) {
+            effectiveBg = '#ffffff';
+          } else if (isInvBW) {
+            effectiveBg = '#000000';
+            primaryDark = '#ffffff';
+            primaryLight = '#000000';
+          }
+
+          c.fillStyle = effectiveBg;
+          c.fillRect(0, 0, w, h);
+
+          const s = Math.max(16, Math.floor(p.scale));
+          const cx = w / 2;
+          const cy = h / 2;
+
+          const activeCols = (isBW || isInvBW) 
+            ? [primaryDark, primaryLight] 
+            : (cols.length ? [...cols] : ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']);
+
+          c.lineCap = 'round';
+          c.lineJoin = 'miter';
+          c.globalAlpha = Math.max(0.01, 1 - (p.transparency / 100));
+
+          const angleDeg = parseInt(p.snapAngle) || 0;
+          c.save();
+          c.translate(cx, cy);
+          c.rotate((angleDeg * Math.PI) / 180);
+          c.translate(-cx, -cy);
+
+          const diag = Math.hypot(w, h);
+          const halfCols = Math.ceil((diag * 0.8) / s) + 2;
+          const halfRows = Math.ceil((diag * 0.8) / s) + 2;
+          const density = Math.max(1, Math.floor(p.stripesPerCell));
+          const numSteps = Math.max(2, Math.floor(p.weightSteps));
+
+          const getLineWidth = (keyA, keyB = 0) => {
+            const base = Math.max(0.5, p.strokeW);
+            if (p.weightVar === 'Uniform Solid') return base;
+
+            let stepFrac = 0.5;
+
+            if (p.weightVar === 'High-Contrast Dispersal') {
+              const rawIndex = Math.abs(keyA * 3 + keyB * 7) % numSteps;
+              const dispersed = (rawIndex % 2 === 0) 
+                ? (rawIndex * 0.5) 
+                : (numSteps - 1 - (rawIndex - 1) * 0.5);
+              stepFrac = dispersed / (numSteps - 1 || 1);
+              return Math.max(0.5, base * (0.08 + stepFrac * 3.52));
+            } else if (p.weightVar === 'Randomized Weights') {
+              const raw = hash(keyA * 79 + keyB * 23, 9871);
+              const bucket = Math.floor(raw * numSteps);
+              const dispersed = (bucket % 2 === 0) 
+                ? (bucket * 0.5) 
+                : (numSteps - 1 - (bucket - 1) * 0.5);
+              stepFrac = dispersed / (numSteps - 1 || 1);
+              return Math.max(0.5, base * (0.1 + stepFrac * 3.4));
+            } else if (p.weightVar === 'Alternating Rhythms') {
+              const isThick = Math.abs(keyA + keyB) % 2 === 0;
+              const subLevel = (Math.floor(Math.abs(keyA + keyB) / 2) % Math.ceil(numSteps / 2)) / (Math.ceil(numSteps / 2) || 1);
+              return isThick 
+                ? Math.max(0.5, base * (1.8 + subLevel * 1.8)) 
+                : Math.max(0.5, base * (0.15 + subLevel * 0.45));
+            } else if (p.weightVar === 'Harmonic Taper') {
+              const rawWave = 0.5 + 0.5 * Math.sin((keyA + keyB) * 0.65);
+              const bucket = Math.floor(rawWave * numSteps);
+              const dispersed = (bucket % 2 === 0) 
+                ? (bucket * 0.5) 
+                : (numSteps - 1 - (bucket - 1) * 0.5);
+              stepFrac = dispersed / (numSteps - 1 || 1);
+              return Math.max(0.5, base * (0.12 + stepFrac * 3.2));
+            }
+
+            return base;
+          };
+
+          const getLineColor = (gridIdx, subIdx = 0) => {
+            if (isBW) return subIdx % 2 === 0 ? '#000000' : '#333333';
+            if (isInvBW) return subIdx % 2 === 0 ? '#ffffff' : '#cccccc';
+            if (p.colorFlow === 'Palette Flow') {
+              return activeCols[Math.abs(gridIdx + subIdx) % activeCols.length];
+            } else if (p.colorFlow === 'Row Shift') {
+              return activeCols[Math.abs(gridIdx) % activeCols.length];
+            } else if (p.colorFlow === 'Random') {
+              const ch = Math.abs(Math.floor(hash(gridIdx * 61 + subIdx, 1337) * 100000));
+              return activeCols[ch % activeCols.length];
+            }
+            return (Math.abs(gridIdx + subIdx) % 2 === 0) ? activeCols[0] : (activeCols[1] || activeCols[0]);
+          };
+
+          const strokeWithHalo = (baseColor, lineW) => {
+            if (p.haloStroke > 0) {
+              c.save();
+              c.lineWidth = lineW + p.haloStroke * 2;
+              c.strokeStyle = effectiveBg;
+              c.stroke();
+              c.restore();
+            }
+            c.lineWidth = lineW;
+            c.strokeStyle = baseColor;
+            c.stroke();
+          };
+
+          const getStaggerOffset = (gx, gy) => {
+            let ox = 0, oy = 0;
+            if (p.stagger === 'Brick Stagger (X)' && Math.abs(gy) % 2 === 1) ox = s * 0.5;
+            if (p.stagger === 'Column Stagger (Y)' && Math.abs(gx) % 2 === 1) oy = s * 0.5;
+            return { ox, oy };
+          };
+
+          // 1. Concentric Circles
+          if (p.pattern === 'Concentric Circles') {
+            const ringCount = Math.max(2, density);
+            const maxRadius = s * 0.49;
+            for (let gy = -halfRows; gy <= halfRows; gy++) {
+              for (let gx = -halfCols; gx <= halfCols; gx++) {
+                const { ox, oy } = getStaggerOffset(gx, gy);
+                const x = cx + gx * s + ox;
+                const y = cy + gy * s + oy;
+                for (let rIdx = ringCount; rIdx >= 1; rIdx--) {
+                  const rad = maxRadius * (rIdx / ringCount);
+                  const lineW = getLineWidth(gx * 19 + gy, rIdx);
+                  const strokeC = getLineColor(gx + gy, rIdx);
+                  c.beginPath();
+                  c.arc(x, y, rad, 0, Math.PI * 2);
+                  strokeWithHalo(strokeC, lineW);
+                }
+                c.fillStyle = getLineColor(gx + gy, 0);
+                c.beginPath();
+                c.arc(x, y, Math.max(1, p.strokeW * 0.8), 0, Math.PI * 2);
+                c.fill();
+              }
+            }
+          }
+
+          // 2. Zigzag Waves
+          else if (p.pattern === 'Zigzag Waves') {
+            const stepY = (s * 0.6) / density;
+            const yRange = halfRows * density * 2;
+            for (let gy = -yRange; gy <= yRange; gy++) {
+              const y = cy + gy * stepY;
+              const lineW = getLineWidth(gy, 0);
+              const strokeC = getLineColor(gy, gy);
+              c.beginPath();
+              c.moveTo(cx - (halfCols + 1) * s, y);
+              for (let gx = -halfCols - 1; gx <= halfCols + 1; gx++) {
+                const { ox } = getStaggerOffset(gx, gy);
+                const x = cx + gx * s + ox;
+                c.lineTo(x + s * 0.5, y + (gx % 2 === 0 ? -stepY * density : stepY * density));
+              }
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 3. Isometric Cubes
+          else if (p.pattern === 'Isometric Cubes') {
+            const hx = Math.sqrt(3) * (s * 0.5);
+            const hy = s * 0.75;
+            const r = s * 0.5;
+            const numStripes = density;
+
+            for (let gy = -halfRows * 2; gy <= halfRows * 2; gy++) {
+              const shift = (Math.abs(gy) % 2 === 1) ? hx : 0;
+              const y = cy + gy * hy;
+              for (let gx = -halfCols - 1; gx <= halfCols + 1; gx++) {
+                const x = cx + gx * (hx * 2) + shift;
+
+                // Top Face
+                c.save();
+                c.beginPath();
+                c.moveTo(x, y); c.lineTo(x + hx, y - r * 0.5); c.lineTo(x, y - r); c.lineTo(x - hx, y - r * 0.5);
+                c.closePath();
+                c.fillStyle = effectiveBg; c.fill(); c.clip();
+
+                const cTop = getLineColor(gx, gy);
+                for (let i = -numStripes * 2; i <= numStripes * 2; i++) {
+                  const step = (hx / numStripes) * i;
+                  const lineW = getLineWidth(gx * 7 + gy, i);
+                  c.beginPath();
+                  c.moveTo(x - hx + step, y);
+                  c.lineTo(x + step, y - r);
+                  strokeWithHalo(cTop, lineW);
+                }
+                c.restore();
+
+                // Left Face
+                c.save();
+                c.beginPath();
+                c.moveTo(x, y); c.lineTo(x - hx, y - r * 0.5); c.lineTo(x - hx, y + r * 0.5); c.lineTo(x, y + r);
+                c.closePath();
+                c.fillStyle = effectiveBg; c.fill(); c.clip();
+
+                const cLeft = getLineColor(gx + 1, gy);
+                for (let i = -numStripes; i <= numStripes * 2; i++) {
+                  const stepY = (r / numStripes) * i;
+                  const lineW = getLineWidth(gx * 11 + gy, i);
+                  c.beginPath();
+                  c.moveTo(x - hx * 1.5, y - r * 0.5 + stepY);
+                  c.lineTo(x + hx * 0.5, y + r * 0.5 + stepY);
+                  strokeWithHalo(cLeft, lineW);
+                }
+                c.restore();
+
+                // Right Face
+                c.save();
+                c.beginPath();
+                c.moveTo(x, y); c.lineTo(x + hx, y - r * 0.5); c.lineTo(x + hx, y + r * 0.5); c.lineTo(x, y + r);
+                c.closePath();
+                c.fillStyle = effectiveBg; c.fill(); c.clip();
+
+                const cRight = getLineColor(gx, gy + 1);
+                const stepX = hx / numStripes;
+                for (let i = 0; i <= numStripes; i++) {
+                  const vx = x + i * stepX;
+                  const lineW = getLineWidth(gx * 13 + gy, i);
+                  c.beginPath();
+                  c.moveTo(vx, y - r);
+                  c.lineTo(vx, y + r * 1.5);
+                  strokeWithHalo(cRight, lineW);
+                }
+                c.restore();
+
+                // Outer wire
+                const wireW = getLineWidth(gx + gy, 99);
+                const wireC = (isBW || isInvBW) ? primaryDark : activeCols[0];
+                c.beginPath();
+                c.moveTo(x, y); c.lineTo(x, y + r);
+                c.moveTo(x, y); c.lineTo(x - hx, y - r * 0.5);
+                c.moveTo(x, y); c.lineTo(x + hx, y - r * 0.5);
+                c.moveTo(x, y - r); c.lineTo(x + hx, y - r * 0.5); c.lineTo(x + hx, y + r * 0.5); c.lineTo(x, y + r);
+                c.lineTo(x - hx, y + r * 0.5); c.lineTo(x - hx, y - r * 0.5); c.closePath();
+                strokeWithHalo(wireC, wireW);
+              }
+            }
+          }
+
+          // 4. Diamond Rings
+          else if (p.pattern === 'Diamond Rings') {
+            const step = s / density;
+            const maxRadius = halfCols * s;
+            for (let r = step; r <= maxRadius; r += step) {
+              const idx = Math.floor(r / step);
+              const lineW = getLineWidth(idx, 0);
+              const strokeC = getLineColor(idx, idx);
+              c.beginPath();
+              c.moveTo(cx, cy - r);
+              c.lineTo(cx + r, cy);
+              c.lineTo(cx, cy + r);
+              c.lineTo(cx - r, cy);
+              c.closePath();
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 5. Hexagonal Grid
+          else if (p.pattern === 'Hexagonal Grid') {
+            const step = (s * 0.866) / density;
+            const numLines = Math.ceil(diag / step);
+            for (let i = -numLines; i <= numLines; i++) {
+              const offset = i * step;
+              const lineW = getLineWidth(i, 0);
+              const strokeC = getLineColor(i, i);
+
+              c.beginPath();
+              c.moveTo(cx - diag, cy + offset);
+              c.lineTo(cx + diag, cy + offset);
+              strokeWithHalo(strokeC, lineW);
+
+              c.beginPath();
+              c.moveTo(cx + offset - diag * 0.5, cy - diag * 0.866);
+              c.lineTo(cx + offset + diag * 0.5, cy + diag * 0.866);
+              strokeWithHalo(strokeC, getLineWidth(i, 1));
+
+              c.beginPath();
+              c.moveTo(cx + offset + diag * 0.5, cy - diag * 0.866);
+              c.lineTo(cx + offset - diag * 0.5, cy + diag * 0.866);
+              strokeWithHalo(strokeC, getLineWidth(i, 2));
+            }
+          }
+
+          // 6. Greek Key Maze
+          else if (p.pattern === 'Greek Key Maze') {
+            const stepY = s / density;
+            const yRange = halfRows * density * 2;
+            for (let gy = -yRange; gy <= yRange; gy++) {
+              const y = cy + gy * stepY;
+              const lineW = getLineWidth(gy, 0);
+              const strokeC = getLineColor(gy, gy);
+              c.beginPath();
+              c.moveTo(cx - (halfCols + 1) * s, y);
+              for (let gx = -halfCols - 1; gx <= halfCols + 1; gx++) {
+                const { ox } = getStaggerOffset(gx, gy);
+                const x = cx + gx * s + ox;
+                c.lineTo(x, y - stepY * 0.5);
+                c.lineTo(x + s * 0.5, y - stepY * 0.5);
+                c.lineTo(x + s * 0.5, y + stepY * 0.5);
+                c.lineTo(x + s, y + stepY * 0.5);
+                c.lineTo(x + s, y);
+              }
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 7. Diagonal Stripes
+          else if (p.pattern === 'Diagonal Stripes') {
+            const step = (s * 0.707) / density;
+            const totalLines = Math.ceil(diag / step);
+            for (let i = -totalLines; i <= totalLines; i++) {
+              const offset = i * step;
+              const lineW = getLineWidth(i, 0);
+              const strokeC = getLineColor(i, i);
+              c.beginPath();
+              c.moveTo(cx + offset - diag, cy - diag);
+              c.lineTo(cx + offset + diag, cy + diag);
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 8. Intersecting Sine Waves
+          else if (p.pattern === 'Intersecting Sine Waves') {
+            const stepY = (s * 0.6) / density;
+            const yRange = halfRows * density * 2;
+            const waveLen = s * 1.5;
+            for (let gy = -yRange; gy <= yRange; gy++) {
+              const y = cy + gy * stepY;
+              const phase = (gy % 2 === 0) ? 0 : Math.PI;
+              const lineW = getLineWidth(gy, 0);
+              const strokeC = getLineColor(gy, gy);
+              c.beginPath();
+              for (let x = cx - halfCols * s; x <= cx + halfCols * s; x += 6) {
+                const dy = Math.sin((x / waveLen) * Math.PI * 2 + phase) * (stepY * 1.8);
+                if (x === cx - halfCols * s) c.moveTo(x, y + dy); else c.lineTo(x, y + dy);
+              }
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 9. Rounded Diamond Mesh
+          else if (p.pattern === 'Rounded Diamond Mesh') {
+            const r = s * 0.42;
+            const cr = Math.min(r * 0.4, 16);
+            for (let gy = -halfRows; gy <= halfRows; gy++) {
+              for (let gx = -halfCols; gx <= halfCols; gx++) {
+                const { ox, oy } = getStaggerOffset(gx, gy);
+                const x = cx + gx * s + ox;
+                const y = cy + gy * s + oy;
+                const lineW = getLineWidth(gx, gy);
+                const strokeC = getLineColor(gx, gy);
+
+                c.save();
+                c.translate(x, y);
+                c.rotate(Math.PI / 4);
+                c.beginPath();
+                c.moveTo(-r + cr, -r);
+                c.lineTo(r - cr, -r);
+                c.quadraticCurveTo(r, -r, r, -r + cr);
+                c.lineTo(r, r - cr);
+                c.quadraticCurveTo(r, r, r - cr, r);
+                c.lineTo(-r + cr, r);
+                c.quadraticCurveTo(-r, r, -r, r - cr);
+                c.lineTo(-r, -r + cr);
+                c.quadraticCurveTo(-r, -r, -r + cr, -r);
+                strokeWithHalo(strokeC, lineW);
+                c.restore();
+
+                c.fillStyle = strokeC;
+                c.beginPath();
+                c.arc(x + s * 0.5, y + s * 0.5, Math.max(1.5, p.strokeW * 0.75), 0, Math.PI * 2);
+                c.fill();
+              }
+            }
+          }
+
+          // 10. Scattered Minimal Squares
+          else if (p.pattern === 'Scattered Minimal Squares') {
+            const sub = Math.max(2, Math.floor(density * 0.8));
+            const cellSize = s / sub;
+            for (let gy = -halfRows * sub; gy <= halfRows * sub; gy++) {
+              for (let gx = -halfCols * sub; gx <= halfCols * sub; gx++) {
+                const x = cx + gx * cellSize;
+                const y = cy + gy * cellSize;
+                const pseudo = Math.abs(Math.floor(hash(gx * 73, gy * 31) * 100));
+                if (pseudo % 3 === 0) {
+                  const weightMod = getLineWidth(gx, gy) / p.strokeW;
+                  const sqSize = cellSize * (0.3 + (pseudo % 5) * 0.16) * Math.min(2.5, Math.max(0.4, weightMod));
+                  c.fillStyle = getLineColor(gx, pseudo);
+                  if (p.haloStroke > 0) {
+                    c.strokeStyle = effectiveBg;
+                    c.lineWidth = p.haloStroke;
+                    c.strokeRect(x - sqSize * 0.5, y - sqSize * 0.5, sqSize, sqSize);
+                  }
+                  c.fillRect(x - sqSize * 0.5, y - sqSize * 0.5, sqSize, sqSize);
+                }
+              }
+            }
+          }
+
+          // 11. Dense Chevron Columns
+          else if (p.pattern === 'Dense Chevron Columns') {
+            const colW = s * 0.5;
+            const stepY = (s * 0.4) / density;
+            const yRange = halfRows * density * 2;
+            for (let gx = -halfCols * 2; gx <= halfCols * 2; gx++) {
+              const x = cx + gx * colW;
+              const invert = Math.abs(gx) % 2 === 1;
+              for (let gy = -yRange; gy <= yRange; gy++) {
+                const y = cy + gy * stepY;
+                const lineW = getLineWidth(gx, gy);
+                const strokeC = getLineColor(gx, gy);
+                c.beginPath();
+                c.moveTo(x - colW * 0.5, y + (invert ? colW * 0.4 : -colW * 0.4));
+                c.lineTo(x, y);
+                c.lineTo(x + colW * 0.5, y + (invert ? colW * 0.4 : -colW * 0.4));
+                strokeWithHalo(strokeC, lineW);
+              }
+            }
+          }
+
+          // 12. Tartan Diamond Plaid
+          else if (p.pattern === 'Tartan Diamond Plaid') {
+            const step = (s * 0.707) / density;
+            const totalLines = Math.ceil(diag / step);
+            for (let i = -totalLines; i <= totalLines; i++) {
+              const offset = i * step;
+              const isPair = Math.abs(i) % 4 < 2;
+              const baseW = isPair ? p.strokeW * 1.6 : Math.max(0.5, p.strokeW * 0.6);
+              const lineW = getLineWidth(i, 0) * (baseW / p.strokeW);
+              const strokeC = getLineColor(i, i);
+
+              c.beginPath();
+              c.moveTo(cx + offset - diag, cy - diag);
+              c.lineTo(cx + offset + diag, cy + diag);
+              strokeWithHalo(strokeC, lineW);
+
+              c.beginPath();
+              c.moveTo(cx - offset + diag, cy - diag);
+              c.lineTo(cx - offset - diag, cy + diag);
+              strokeWithHalo(strokeC, lineW);
+            }
+          }
+
+          // 13. Interlocking Flower Circles
+          else if (p.pattern === 'Interlocking Flower Circles') {
+            const r = s * 0.5;
+            for (let gy = -halfRows; gy <= halfRows; gy++) {
+              for (let gx = -halfCols; gx <= halfCols; gx++) {
+                const { ox, oy } = getStaggerOffset(gx, gy);
+                const x = cx + gx * r + ox;
+                const y = cy + gy * r + oy;
+                const lineW = getLineWidth(gx, gy);
+                const strokeC = getLineColor(gx, gy);
+                c.beginPath();
+                c.arc(x, y, r, 0, Math.PI * 2);
+                strokeWithHalo(strokeC, lineW);
+              }
+            }
+          }
+
+          // 14. Nested Square Whirl
+          else if (p.pattern === 'Nested Square Whirl') {
+            for (let gy = -halfRows; gy <= halfRows; gy++) {
+              for (let gx = -halfCols; gx <= halfCols; gx++) {
+                const { ox, oy } = getStaggerOffset(gx, gy);
+                const x = cx + gx * s + ox;
+                const y = cy + gy * s + oy;
+                const maxSq = s * 0.48;
+                for (let d = density; d >= 1; d--) {
+                  const sq = maxSq * (d / density);
+                  const rotAngle = (density - d) * 0.08;
+                  c.save();
+                  c.translate(x, y);
+                  c.rotate(rotAngle);
+                  const lineW = getLineWidth(gx * 5 + gy, d);
+                  const strokeC = getLineColor(gx + gy, d);
+                  c.beginPath();
+                  c.rect(-sq, -sq, sq * 2, sq * 2);
+                  strokeWithHalo(strokeC, lineW);
+                  c.restore();
+                }
+              }
+            }
+          }
+
+          // 15. Polka Dot Bubble Grid
+          else if (p.pattern === 'Polka Dot Bubble Grid') {
+            const sub = Math.max(1, Math.floor(density * 0.5));
+            const step = s / sub;
+            for (let gy = -halfRows * sub; gy <= halfRows * sub; gy++) {
+              for (let gx = -halfCols * sub; gx <= halfCols * sub; gx++) {
+                const { ox, oy } = getStaggerOffset(gx, gy);
+                const x = cx + gx * step + ox;
+                const y = cy + gy * step + oy;
+                const isSolid = (Math.abs(gx + gy) % 2 === 0);
+                const strokeC = getLineColor(gx, gy);
+                const lineW = getLineWidth(gx, gy);
+
+                if (isSolid) {
+                  c.fillStyle = strokeC;
+                  const dotR = step * 0.25 * (lineW / p.strokeW);
+                  if (p.haloStroke > 0) {
+                    c.beginPath();
+                    c.arc(x, y, Math.max(1, dotR) + p.haloStroke, 0, Math.PI * 2);
+                    c.fillStyle = effectiveBg;
+                    c.fill();
+                    c.fillStyle = strokeC;
+                  }
+                  c.beginPath();
+                  c.arc(x, y, Math.max(1, dotR), 0, Math.PI * 2);
+                  c.fill();
+                } else {
+                  c.beginPath();
+                  c.arc(x, y, step * 0.35, 0, Math.PI * 2);
+                  strokeWithHalo(strokeC, lineW);
+                }
+              }
+            }
+          }
+
+          // 16. Triple-Track Weave
+          else {
+            const step = s;
+            for (let gy = -halfRows; gy <= halfRows; gy++) {
+              for (let gx = -halfCols; gx <= halfCols; gx++) {
+                const x = cx + gx * step;
+                const y = cy + gy * step;
+                const isHoriz = (Math.abs(gx + gy) % 2 === 0);
+                const strokeC = getLineColor(gx, gy);
+
+                const lineTotal = Math.min(4, density);
+                for (let l = 0; l < lineTotal; l++) {
+                  const lineW = getLineWidth(gx * 7 + gy, l);
+                  const off = (l - (lineTotal - 1) / 2) * (p.strokeW * 2.5);
+                  c.beginPath();
+                  if (isHoriz) {
+                    c.moveTo(x - step * 0.48, y + off);
+                    c.lineTo(x + step * 0.48, y + off);
+                  } else {
+                    c.moveTo(x + off, y - step * 0.48);
+                    c.lineTo(x + off, y + step * 0.48);
+                  }
+                  strokeWithHalo(strokeC, lineW);
+                }
+              }
+            }
+          }
+
+          c.restore();
+          c.globalAlpha = 1.0;
+        }
+      },
+      
       blocks: {
         name: "Architectural Blocks", group: "Geometric",
         params: {
