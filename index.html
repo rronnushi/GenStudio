@@ -468,6 +468,14 @@
       </div>
 
       <div class="btn-row" style="margin-top: auto; padding-top: 8px;">
+        <div class="control-group" style="margin-bottom: 8px;">
+  <label for="exportScaleSelect" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #a8a29e; display: block; margin-bottom: 4px;">Export Quality</label>
+  <select id="exportScaleSelect" class="studio-select" style="width: 100%; padding: 6px 8px; font-size: 12px; background: #292524; color: #f5f5f4; border: 1px solid #44403c; border-radius: 4px;">
+    <option value="1">1:1 Native Screen / Social</option>
+    <option value="2" selected>2x HD Retina</option>
+    <option value="3">3x Ultra Print (300+ DPI)</option>
+  </select>
+</div>
         <button id="btnExport" class="btn-primary" style="grid-column: span 2; padding: 10px;">Download High-Res PNG</button>
       </div>
     </div>
@@ -477,6 +485,7 @@
     <div class="canvas-wrapper"><canvas id="artCanvas"></canvas></div>
     <div class="aspect-bar">
       <button class="aspect-btn active" data-w="1080" data-h="1920">9:16 Story</button>
+      <button class="aspect-btn" data-w="1080" data-h="1350" data-ratio="4:5">4:5 IG Post</button>
       <button class="aspect-btn" data-w="1400" data-h="1400">1:1 Square</button>
       <button class="aspect-btn" data-w="1600" data-h="1200">4:3 Print</button>
       <button class="aspect-btn" data-w="1920" data-h="1080">16:9 Screen</button>
@@ -3231,19 +3240,119 @@
     });
 
 document.getElementById('btnExport').addEventListener('click', () => {
-      const scaleFactor = 2;
-      const targetW = canvas.width * scaleFactor;
-      const targetH = canvas.height * scaleFactor;
+      // 1. Determine export multiplier from selector
+      const qualitySelect = document.getElementById('exportScaleSelect');
+      const scaleFactor = qualitySelect ? parseFloat(qualitySelect.value) : 2;
+
+      // Calculate target output dimensions
+      const targetW = Math.round(canvas.width * scaleFactor);
+      const targetH = Math.round(canvas.height * scaleFactor);
 
       const exportCanvas = document.createElement('canvas');
       exportCanvas.width = targetW;
       exportCanvas.height = targetH;
       
-      // Force explicit sRGB color space to prevent OS photo viewers from dulling colors
       const expCtx = exportCanvas.getContext('2d', { 
         willReadFrequently: true,
         colorSpace: 'srgb'
       });
+
+      // 2. Clear background to preserve pure base color
+      expCtx.fillStyle = bgColor;
+      expCtx.fillRect(0, 0, targetW, targetH);
+
+      // 3. Re-run active engine natively at full export resolution for crisp vector fidelity
+      const engine = ENGINES[uiEngineSelect.value];
+      const p = {};
+      Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
+
+      // Scale stroke weights / radii proportionally when rendering at 2x/3x print scale
+      if (scaleFactor !== 1) {
+        if ('strokeW' in p) p.strokeW = p.strokeW * scaleFactor;
+        if ('wireThickness' in p) p.wireThickness = p.wireThickness * scaleFactor;
+        if ('wireWeight' in p) p.wireWeight = p.wireWeight * scaleFactor;
+        if ('pointSize' in p) p.pointSize = p.pointSize * scaleFactor;
+      }
+
+      // Scale framing margins strictly with scaleFactor
+      const margin = parseFloat(compMargin.value) * scaleFactor;
+      const drawW = Math.max(1, targetW - margin * 2);
+      const drawH = Math.max(1, targetH - margin * 2);
+
+      const expRenderCanvas = document.createElement('canvas');
+      expRenderCanvas.width = drawW;
+      expRenderCanvas.height = drawH;
+      const expRenderCtx = expRenderCanvas.getContext('2d', { 
+        willReadFrequently: true,
+        colorSpace: 'srgb'
+      });
+
+      // Preserve exact pseudo-random seed
+      const savedSeed = globalSeed;
+      const seedInput = document.getElementById('paramSeed');
+      if (seedInput) {
+        globalSeed = parseInt(seedInput.value) || savedSeed;
+      }
+
+      // Render engine at target resolution
+      engine.render(expRenderCtx, drawW, drawH, p, currentColors);
+
+      // Apply symmetry if active
+      if (typeof applyGlobalSymmetry === 'function') {
+        applyGlobalSymmetry(compSymmetry.value, expRenderCtx, drawW, drawH);
+      }
+
+      // 4. Center and compose identical to viewport (respecting offset, rotation, zoom)
+      const zoom = parseFloat(compZoom.value) / 100;
+      const rot = (parseFloat(compRotation.value) * Math.PI) / 180;
+      const ox = (parseFloat(compOffsetX.value) / 100) * targetW;
+      const oy = (parseFloat(compOffsetY.value) / 100) * targetH;
+
+      if (drawW > 0 && drawH > 0) {
+        expCtx.save();
+        expCtx.translate(targetW / 2 + ox, targetH / 2 + oy);
+        expCtx.rotate(rot);
+        expCtx.scale(zoom, zoom);
+        expCtx.drawImage(expRenderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+        expCtx.restore();
+      }
+
+      // 5. Film grain pass (native 1:1 grain size)
+      const grainVal = parseFloat(compGrain.value);
+      if (grainVal > 0 && typeof applyGrainPass === 'function') {
+        applyGrainPass(grainVal, expCtx, targetW, targetH);
+      }
+
+      // Restore seed
+      globalSeed = savedSeed;
+
+      // 6. Direct lossless sRGB PNG export
+      exportCanvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const activeBtn = document.querySelector(".aspect-btn.active");
+        const ratioTag = activeBtn ? (activeBtn.dataset.ratio || `${activeBtn.dataset.w}x${activeBtn.dataset.h}`) : 'export';
+        const fileName = `RRON_Studio_${ratioTag}_${Date.now()}.png`;
+
+        if (navigator.share) {
+          const file = new File([blob], fileName, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: 'RRON Generative Art' });
+              return;
+            } catch (err) {}
+          }
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = fileName;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 200);
+      }, 'image/png');
+    });
 
       expCtx.fillStyle = bgColor;
       expCtx.fillRect(0, 0, targetW, targetH);
