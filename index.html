@@ -153,6 +153,7 @@
 
     input[type=range] {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
       background: transparent;
       height: 16px;
@@ -295,6 +296,7 @@
       max-height: calc(100vh - 120px);
       max-height: calc(100dvh - 120px);
       object-fit: contain;
+      image-rendering: auto;
     }
 
     .aspect-bar {
@@ -468,15 +470,8 @@
       </div>
 
       <div class="btn-row" style="margin-top: auto; padding-top: 8px;">
-        <div class="control-group" style="margin-bottom: 8px;">
-  <label for="exportScaleSelect" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #a8a29e; display: block; margin-bottom: 4px;">Export Quality</label>
-  <select id="exportScaleSelect" class="studio-select" style="width: 100%; padding: 6px 8px; font-size: 12px; background: #292524; color: #f5f5f4; border: 1px solid #44403c; border-radius: 4px;">
-    <option value="1">1:1 Native Screen / Social</option>
-    <option value="2" selected>2x HD Retina</option>
-    <option value="3">3x Ultra Print (300+ DPI)</option>
-  </select>
-</div>
-        <button id="btnExport" class="btn-primary" style="grid-column: span 2; padding: 10px;">Download High-Res PNG</button>
+        <button id="btnExport" class="btn-primary" style="grid-column: span 2; padding: 10px;">Download Vibrant PNG (Original)</button>
+        <button id="btnExport2x" style="grid-column: span 2; padding: 7px; font-weight: 700; border-color: var(--border);">Download 2× Ultra-HD PNG</button>
       </div>
     </div>
   </aside>
@@ -485,7 +480,7 @@
     <div class="canvas-wrapper"><canvas id="artCanvas"></canvas></div>
     <div class="aspect-bar">
       <button class="aspect-btn active" data-w="1080" data-h="1920">9:16 Story</button>
-      <button class="aspect-btn" data-w="1080" data-h="1350" data-ratio="4:5">4:5 IG Post</button>
+      <button class="aspect-btn" data-w="1080" data-h="1350">4:5 IG Post</button>
       <button class="aspect-btn" data-w="1400" data-h="1400">1:1 Square</button>
       <button class="aspect-btn" data-w="1600" data-h="1200">4:3 Print</button>
       <button class="aspect-btn" data-w="1920" data-h="1080">16:9 Screen</button>
@@ -494,8 +489,11 @@
   </main>
 
   <script>
-    const canvas = document.getElementById("artCanvas"), ctx = canvas.getContext("2d", { willReadFrequently: true });
-    const renderCanvas = document.createElement("canvas"), renderCtx = renderCanvas.getContext("2d", { willReadFrequently: true });
+    // Explicit color space setup for maximum vibrancy and parity across display & export
+    const canvas = document.getElementById("artCanvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true, colorSpace: "srgb" });
+    const renderCanvas = document.createElement("canvas");
+    const renderCtx = renderCanvas.getContext("2d", { willReadFrequently: true, colorSpace: "srgb" });
 
     const PALETTES = {
       amsterdam: ['#1e293b', '#dc2626', '#f87171', '#fef08a', '#e2e8f0', '#3b82f6', '#10b981'],
@@ -536,8 +534,12 @@
     }
 
     let globalSeed = 1337;
+    let seedState = 1337;
+    function resetRandom(seedVal) {
+      seedState = (seedVal !== undefined ? seedVal : globalSeed) >>> 0;
+    }
     function random() {
-      let t = globalSeed += 0x6D2B79F5;
+      let t = seedState += 0x6D2B79F5;
       t = Math.imul(t ^ t >>> 15, t | 1);
       t ^= t + Math.imul(t ^ t >>> 7, t | 61);
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
@@ -562,7 +564,7 @@
       if (!window._glCanvas) window._glCanvas = document.createElement('canvas');
       const canvas = window._glCanvas;
       canvas.width = w; canvas.height = h;
-      const gl = canvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true });
+      const gl = canvas.getContext('webgl', { antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
       if (!gl) return;
       const vs = `attribute vec2 pos; void main() { gl_Position = vec4(pos, 0.0, 1.0); }`;
       const prog = gl.createProgram();
@@ -593,6 +595,8 @@
       gl.viewport(0, 0, w, h);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       ctx.drawImage(canvas, 0, 0);
+      gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
     }
 
     const ENGINES = {
@@ -675,7 +679,7 @@
         render: (c, w, h, p, cols) => {
           c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
           if (!window.THREE) return;
-          if (!window._thR) window._thR = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+          if (!window._thR) window._thR = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
           window._thR.setSize(w, h);
           window._thR.setClearColor(0, 0);
           const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, w / h, 0.1, 3000);
@@ -684,9 +688,10 @@
           const tx = tc.getContext('2d'), grad = tx.createLinearGradient(0, 0, 256, 0);
           cols.forEach((cl, i) => grad.addColorStop(i / (cols.length - 1 || 1), cl));
           tx.fillStyle = grad; tx.fillRect(0, 0, 256, 1);
+          const texture = new THREE.CanvasTexture(tc);
           const geo = new THREE.TorusKnotGeometry(p.scale * 1.5, p.tube, p.density, 16, p.twist, 3);
           const mat = new THREE.MeshBasicMaterial({
-            map: new THREE.CanvasTexture(tc),
+            map: texture,
             wireframe: p.wire === 'Yes',
             transparent: true,
             opacity: 0.9,
@@ -697,7 +702,7 @@
           sc.add(m);
           window._thR.render(sc, cam);
           c.drawImage(window._thR.domElement, 0, 0);
-          geo.dispose(); mat.dispose();
+          geo.dispose(); mat.dispose(); texture.dispose();
         }
       },
 
@@ -741,18 +746,14 @@
           lineWeight: { type: 'range', min: 0, max: 40, val: 8, label: "Contour Lines" }
         },
         render: (ctx, w, h, p, cols) => {
-          const offCanvas = document.createElement('canvas');
-          offCanvas.width = w; offCanvas.height = h;
-          const oCtx = offCanvas.getContext('2d');
-          const imgData = oCtx.createImageData(w, h);
+          const imgData = ctx.createImageData(w, h);
           const data = imgData.data;
-
           const scale = p.scale / 30000;
           const bandCount = p.bands;
           const thicknessThreshold = p.lineWeight / 150;
           const rgbCols = [bgColor, ...cols].map(hex => {
             const num = parseInt(hex.slice(1), 16);
-            return [num >> 16, (num >> 8) & 255, num & 255];
+            return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
           });
           const contourCol = rgbCols[0];
 
@@ -782,8 +783,7 @@
               data[idx + 3] = 255;
             }
           }
-          oCtx.putImageData(imgData, 0, 0);
-          ctx.drawImage(offCanvas, 0, 0);
+          ctx.putImageData(imgData, 0, 0);
         }
       },
 
@@ -973,7 +973,7 @@
                 if (p.str === 'Yes') { c.strokeStyle = bgColor; c.lineWidth = 1; c.stroke(); }
               };
               if ((x + y) % 2 === 0) { dr(pts[y][x], pts[y][x + 1], pts[y + 1][x]); dr(pts[y][x + 1], pts[y + 1][x + 1], pts[y + 1][x]); }
-              else { dr(pts[y][x], pts[y][x + 1], pts[y + 1][x + 1]); dr(pts[y][x], pts[y + 1][x + 1], pts[y + 1][x]); }
+              else { dr(pts[y][x], pts[y][x + 1], pts[y + 1][x + 1]); dr(pts[y][x], pts[y + 1][x], pts[y + 1][x + 1]); }
             }
           }
         }
@@ -1059,7 +1059,6 @@
                   c.strokeRect(px, py + third, s + 1, third);
                 }
               } else {
-                // Chevron: Interlocking woven bands
                 c.fillStyle = col1;
                 c.beginPath();
                 if (isEven) {
@@ -1122,22 +1121,10 @@
           pattern: { 
             type: 'select', 
             options: [
-              'Concentric Circles',
-              'Zigzag Waves',
-              'Isometric Cubes',
-              'Diamond Rings',
-              'Hexagonal Grid',
-              'Greek Key Maze',
-              'Diagonal Stripes',
-              'Intersecting Sine Waves',
-              'Rounded Diamond Mesh',
-              'Scattered Minimal Squares',
-              'Dense Chevron Columns',
-              'Tartan Diamond Plaid',
-              'Interlocking Flower Circles',
-              'Nested Square Whirl',
-              'Polka Dot Bubble Grid',
-              'Triple-Track Weave'
+              'Concentric Circles', 'Zigzag Waves', 'Isometric Cubes', 'Diamond Rings', 'Hexagonal Grid',
+              'Greek Key Maze', 'Diagonal Stripes', 'Intersecting Sine Waves', 'Rounded Diamond Mesh',
+              'Scattered Minimal Squares', 'Dense Chevron Columns', 'Tartan Diamond Plaid',
+              'Interlocking Flower Circles', 'Nested Square Whirl', 'Polka Dot Bubble Grid', 'Triple-Track Weave'
             ], 
             val: 'Concentric Circles', 
             label: "Pattern Motif" 
@@ -1147,13 +1134,7 @@
           strokeW: { type: 'range', min: 0.5, max: 120, val: 8, label: "Line Weight" },
           weightVar: { 
             type: 'select', 
-            options: [
-              'Uniform Solid', 
-              'High-Contrast Dispersal',
-              'Randomized Weights', 
-              'Alternating Rhythms', 
-              'Harmonic Taper'
-            ], 
+            options: ['Uniform Solid', 'High-Contrast Dispersal', 'Randomized Weights', 'Alternating Rhythms', 'Harmonic Taper'], 
             val: 'High-Contrast Dispersal', 
             label: "Line Variation" 
           },
@@ -1174,14 +1155,7 @@
           },
           colorFlow: { 
             type: 'select', 
-            options: [
-              'Black & White', 
-              'Inverted B&W', 
-              'Alternating', 
-              'Palette Flow', 
-              'Row Shift', 
-              'Random'
-            ], 
+            options: ['Black & White', 'Inverted B&W', 'Alternating', 'Palette Flow', 'Row Shift', 'Random'], 
             val: 'Black & White', 
             label: "Color Mode" 
           }
@@ -1234,7 +1208,6 @@
             if (p.weightVar === 'Uniform Solid') return base;
 
             let stepFrac = 0.5;
-
             if (p.weightVar === 'High-Contrast Dispersal') {
               const rawIndex = Math.abs(keyA * 3 + keyB * 7) % numSteps;
               const dispersed = (rawIndex % 2 === 0) 
@@ -1265,7 +1238,6 @@
               stepFrac = dispersed / (numSteps - 1 || 1);
               return Math.max(0.5, base * (0.12 + stepFrac * 3.2));
             }
-
             return base;
           };
 
@@ -1303,7 +1275,6 @@
             return { ox, oy };
           };
 
-          // 1. Concentric Circles
           if (p.pattern === 'Concentric Circles') {
             const ringCount = Math.max(2, density);
             const maxRadius = s * 0.49;
@@ -1326,10 +1297,7 @@
                 c.fill();
               }
             }
-          }
-
-          // 2. Zigzag Waves
-          else if (p.pattern === 'Zigzag Waves') {
+          } else if (p.pattern === 'Zigzag Waves') {
             const stepY = (s * 0.6) / density;
             const yRange = halfRows * density * 2;
             for (let gy = -yRange; gy <= yRange; gy++) {
@@ -1345,10 +1313,7 @@
               }
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 3. Isometric Cubes
-          else if (p.pattern === 'Isometric Cubes') {
+          } else if (p.pattern === 'Isometric Cubes') {
             const hx = Math.sqrt(3) * (s * 0.5);
             const hy = s * 0.75;
             const r = s * 0.5;
@@ -1360,7 +1325,6 @@
               for (let gx = -halfCols - 1; gx <= halfCols + 1; gx++) {
                 const x = cx + gx * (hx * 2) + shift;
 
-                // Top Face
                 c.save();
                 c.beginPath();
                 c.moveTo(x, y); c.lineTo(x + hx, y - r * 0.5); c.lineTo(x, y - r); c.lineTo(x - hx, y - r * 0.5);
@@ -1378,7 +1342,6 @@
                 }
                 c.restore();
 
-                // Left Face
                 c.save();
                 c.beginPath();
                 c.moveTo(x, y); c.lineTo(x - hx, y - r * 0.5); c.lineTo(x - hx, y + r * 0.5); c.lineTo(x, y + r);
@@ -1396,7 +1359,6 @@
                 }
                 c.restore();
 
-                // Right Face
                 c.save();
                 c.beginPath();
                 c.moveTo(x, y); c.lineTo(x + hx, y - r * 0.5); c.lineTo(x + hx, y + r * 0.5); c.lineTo(x, y + r);
@@ -1415,7 +1377,6 @@
                 }
                 c.restore();
 
-                // Outer wire
                 const wireW = getLineWidth(gx + gy, 99);
                 const wireC = (isBW || isInvBW) ? primaryDark : activeCols[0];
                 c.beginPath();
@@ -1427,10 +1388,7 @@
                 strokeWithHalo(wireC, wireW);
               }
             }
-          }
-
-          // 4. Diamond Rings
-          else if (p.pattern === 'Diamond Rings') {
+          } else if (p.pattern === 'Diamond Rings') {
             const step = s / density;
             const maxRadius = halfCols * s;
             for (let r = step; r <= maxRadius; r += step) {
@@ -1445,10 +1403,7 @@
               c.closePath();
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 5. Hexagonal Grid
-          else if (p.pattern === 'Hexagonal Grid') {
+          } else if (p.pattern === 'Hexagonal Grid') {
             const step = (s * 0.866) / density;
             const numLines = Math.ceil(diag / step);
             for (let i = -numLines; i <= numLines; i++) {
@@ -1471,10 +1426,7 @@
               c.lineTo(cx + offset - diag * 0.5, cy + diag * 0.866);
               strokeWithHalo(strokeC, getLineWidth(i, 2));
             }
-          }
-
-          // 6. Greek Key Maze
-          else if (p.pattern === 'Greek Key Maze') {
+          } else if (p.pattern === 'Greek Key Maze') {
             const stepY = s / density;
             const yRange = halfRows * density * 2;
             for (let gy = -yRange; gy <= yRange; gy++) {
@@ -1494,10 +1446,7 @@
               }
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 7. Diagonal Stripes
-          else if (p.pattern === 'Diagonal Stripes') {
+          } else if (p.pattern === 'Diagonal Stripes') {
             const step = (s * 0.707) / density;
             const totalLines = Math.ceil(diag / step);
             for (let i = -totalLines; i <= totalLines; i++) {
@@ -1509,10 +1458,7 @@
               c.lineTo(cx + offset + diag, cy + diag);
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 8. Intersecting Sine Waves
-          else if (p.pattern === 'Intersecting Sine Waves') {
+          } else if (p.pattern === 'Intersecting Sine Waves') {
             const stepY = (s * 0.6) / density;
             const yRange = halfRows * density * 2;
             const waveLen = s * 1.5;
@@ -1528,10 +1474,7 @@
               }
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 9. Rounded Diamond Mesh
-          else if (p.pattern === 'Rounded Diamond Mesh') {
+          } else if (p.pattern === 'Rounded Diamond Mesh') {
             const r = s * 0.42;
             const cr = Math.min(r * 0.4, 16);
             for (let gy = -halfRows; gy <= halfRows; gy++) {
@@ -1564,10 +1507,7 @@
                 c.fill();
               }
             }
-          }
-
-          // 10. Scattered Minimal Squares
-          else if (p.pattern === 'Scattered Minimal Squares') {
+          } else if (p.pattern === 'Scattered Minimal Squares') {
             const sub = Math.max(2, Math.floor(density * 0.8));
             const cellSize = s / sub;
             for (let gy = -halfRows * sub; gy <= halfRows * sub; gy++) {
@@ -1588,10 +1528,7 @@
                 }
               }
             }
-          }
-
-          // 11. Dense Chevron Columns
-          else if (p.pattern === 'Dense Chevron Columns') {
+          } else if (p.pattern === 'Dense Chevron Columns') {
             const colW = s * 0.5;
             const stepY = (s * 0.4) / density;
             const yRange = halfRows * density * 2;
@@ -1609,10 +1546,7 @@
                 strokeWithHalo(strokeC, lineW);
               }
             }
-          }
-
-          // 12. Tartan Diamond Plaid
-          else if (p.pattern === 'Tartan Diamond Plaid') {
+          } else if (p.pattern === 'Tartan Diamond Plaid') {
             const step = (s * 0.707) / density;
             const totalLines = Math.ceil(diag / step);
             for (let i = -totalLines; i <= totalLines; i++) {
@@ -1632,10 +1566,7 @@
               c.lineTo(cx - offset - diag, cy + diag);
               strokeWithHalo(strokeC, lineW);
             }
-          }
-
-          // 13. Interlocking Flower Circles
-          else if (p.pattern === 'Interlocking Flower Circles') {
+          } else if (p.pattern === 'Interlocking Flower Circles') {
             const r = s * 0.5;
             for (let gy = -halfRows; gy <= halfRows; gy++) {
               for (let gx = -halfCols; gx <= halfCols; gx++) {
@@ -1649,10 +1580,7 @@
                 strokeWithHalo(strokeC, lineW);
               }
             }
-          }
-
-          // 14. Nested Square Whirl
-          else if (p.pattern === 'Nested Square Whirl') {
+          } else if (p.pattern === 'Nested Square Whirl') {
             for (let gy = -halfRows; gy <= halfRows; gy++) {
               for (let gx = -halfCols; gx <= halfCols; gx++) {
                 const { ox, oy } = getStaggerOffset(gx, gy);
@@ -1674,10 +1602,7 @@
                 }
               }
             }
-          }
-
-          // 15. Polka Dot Bubble Grid
-          else if (p.pattern === 'Polka Dot Bubble Grid') {
+          } else if (p.pattern === 'Polka Dot Bubble Grid') {
             const sub = Math.max(1, Math.floor(density * 0.5));
             const step = s / sub;
             for (let gy = -halfRows * sub; gy <= halfRows * sub; gy++) {
@@ -1709,10 +1634,7 @@
                 }
               }
             }
-          }
-
-          // 16. Triple-Track Weave
-          else {
+          } else {
             const step = s;
             for (let gy = -halfRows; gy <= halfRows; gy++) {
               for (let gx = -halfCols; gx <= halfCols; gx++) {
@@ -1848,7 +1770,6 @@
             c.beginPath(); c.arc(ci.x, ci.y, ci.r, 0, Math.PI * 2); c.fill();
             if (p.stk > 0) c.stroke();
 
-            // Render inner concentric filled circles (instead of outline strokes)
             for (let k = 1; k <= p.nest; k++) {
               let nr = ci.r * (1 - k / (p.nest + 1));
               if (nr > p.mn * 0.5) {
@@ -2108,7 +2029,7 @@
         render: (c, w, h, p, cols) => {
           const fl = p.f % 2 !== 0 ? p.f + 1 : p.f, wa = Math.PI * 2 / fl, r = Math.sqrt(w * w + h * h) * (p.rad / 100);
           const sb = document.createElement('canvas'); sb.width = r; sb.height = r;
-          const sx = sb.getContext('2d', { willReadFrequently: true });
+          const sx = sb.getContext('2d', { willReadFrequently: true, colorSpace: "srgb" });
           sx.fillStyle = bgColor; sx.fillRect(0, 0, r, r); sx.lineCap = 'round'; sx.lineJoin = 'round';
           for (let i = 0; i < p.d; i++) {
             sx.fillStyle = pick(cols); sx.strokeStyle = pick(cols); sx.lineWidth = randomRange(1, p.thk); sx.globalAlpha = randomRange(0.4, 1);
@@ -2624,8 +2545,6 @@
           }
 
           flowerCenters.forEach((fc, fIdx) => {
-            // Main flower / base layers drawn from largest (back) to smallest (front)
-            // Color index 0 is at index 0 (the largest back petal), so main color stays in the back
             for (let i = 0; i < layers; i++) {
               c.save();
               const angleOffset = (i * p.rotationStep + fIdx * 25) * Math.PI / 180;
@@ -2636,7 +2555,6 @@
               c.translate(fc.x + ox, fc.y + oy);
               c.rotate(angleOffset);
 
-              // Largest size at i=0 (back), shrinking inward so main large color stays behind
               const sizeFactor = 1 - (i / (layers + 1)) * 0.75;
               const baseScale = Math.min(w, h) * (p.sc / 100) * fc.scaleMult * sizeFactor;
 
@@ -3011,10 +2929,9 @@
         input.addEventListener('input', (e) => {
           currentColors[idx] = e.target.value;
           wrap.style.backgroundColor = e.target.value;
-          render();
+          scheduleRender();
         });
 
-        // Visible delete badge
         const del = document.createElement('div');
         del.className = 'swatch-del';
         del.innerHTML = '&times;';
@@ -3024,7 +2941,7 @@
           if (currentColors.length > 1) {
             currentColors.splice(idx, 1);
             renderPaletteUI();
-            render();
+            scheduleRender();
           }
         });
 
@@ -3032,7 +2949,7 @@
           if (currentColors.length > 1) {
             currentColors.splice(idx, 1);
             renderPaletteUI();
-            render();
+            scheduleRender();
           }
         });
 
@@ -3045,14 +2962,14 @@
     bgColorPicker.addEventListener('input', (e) => {
       bgColor = e.target.value;
       bgSwatchWrap.style.backgroundColor = bgColor;
-      render();
+      scheduleRender();
     });
 
     btnAddColor.addEventListener('click', () => {
       if (currentColors.length < 20) {
         currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
         renderPaletteUI();
-        render();
+        scheduleRender();
       }
     });
 
@@ -3068,7 +2985,7 @@
           document.getElementById(`param_${key}`).addEventListener('input', (e) => {
             document.getElementById(`val_${key}`).innerText = e.target.value;
             engine.params[key].val = parseFloat(e.target.value);
-            render();
+            scheduleRender();
           });
         } else if (conf.type === 'select') {
           let opts = conf.options.map(opt => `<option value="${opt}" ${conf.val === opt ? 'selected' : ''}>${opt}</option>`).join('');
@@ -3076,7 +2993,7 @@
           uiDynamicControls.appendChild(wrap);
           document.getElementById(`param_${key}`).addEventListener('change', (e) => {
             engine.params[key].val = e.target.value;
-            render();
+            scheduleRender();
           });
         }
       });
@@ -3094,12 +3011,11 @@
       targetCtx.putImageData(imgData, 0, 0);
     }
 
-    function applyGlobalSymmetry(symType, rCtx, w, h) {
+    function applyGlobalSymmetry(symType, rCtx, tempCVS, w, h) {
       if (symType === 'None') return;
-      const tempCVS = document.createElement('canvas');
       tempCVS.width = w; tempCVS.height = h;
-      const tCtx = tempCVS.getContext('2d', { willReadFrequently: true });
-      tCtx.drawImage(renderCanvas, 0, 0);
+      const tCtx = tempCVS.getContext('2d', { willReadFrequently: true, colorSpace: "srgb" });
+      tCtx.drawImage(rCtx.canvas, 0, 0);
       rCtx.fillStyle = bgColor;
       rCtx.fillRect(0, 0, w, h);
 
@@ -3127,22 +3043,29 @@
       }
     }
 
-    function render() {
-      globalSeed = parseInt(document.getElementById('paramSeed').value);
+    // Unified Vector & Engine Render Function
+    function renderPipeline(targetCtx, w, h, scaleMult = 1) {
+      const seedVal = parseInt(document.getElementById('paramSeed').value);
+      resetRandom(seedVal);
       const engine = ENGINES[uiEngineSelect.value], p = {};
       Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
 
-      const w = canvas.width, h = canvas.height;
-      const margin = parseFloat(compMargin.value);
-      const drawW = Math.max(1, w - margin * 2), drawH = Math.max(1, h - margin * 2);
+      const margin = parseFloat(compMargin.value) * scaleMult;
+      const drawW = Math.max(1, Math.round(w - margin * 2));
+      const drawH = Math.max(1, Math.round(h - margin * 2));
 
-      renderCanvas.width = drawW;
-      renderCanvas.height = drawH;
-      engine.render(renderCtx, drawW, drawH, p, currentColors);
-      applyGlobalSymmetry(compSymmetry.value, renderCtx, drawW, drawH);
+      const offCanvas = document.createElement("canvas");
+      offCanvas.width = drawW;
+      offCanvas.height = drawH;
+      const offCtx = offCanvas.getContext("2d", { willReadFrequently: true, colorSpace: "srgb" });
 
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, w, h);
+      engine.render(offCtx, drawW, drawH, p, currentColors);
+
+      const sympCanvas = document.createElement("canvas");
+      applyGlobalSymmetry(compSymmetry.value, offCtx, sympCanvas, drawW, drawH);
+
+      targetCtx.fillStyle = bgColor;
+      targetCtx.fillRect(0, 0, w, h);
 
       const zoom = parseFloat(compZoom.value) / 100;
       const rot = parseFloat(compRotation.value) * Math.PI / 180;
@@ -3150,23 +3073,37 @@
       const oy = (parseFloat(compOffsetY.value) / 100) * h;
 
       if (drawW > 0 && drawH > 0) {
-        ctx.save();
-        ctx.translate(w / 2 + ox, h / 2 + oy);
-        ctx.rotate(rot);
-        ctx.scale(zoom, zoom);
-        ctx.drawImage(renderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
-        ctx.restore();
+        targetCtx.save();
+        targetCtx.translate(w / 2 + ox, h / 2 + oy);
+        targetCtx.rotate(rot);
+        targetCtx.scale(zoom, zoom);
+        targetCtx.drawImage(offCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+        targetCtx.restore();
       }
-      applyGrainPass(parseFloat(compGrain.value), ctx, w, h);
+      applyGrainPass(parseFloat(compGrain.value), targetCtx, w, h);
     }
 
-    uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); render(); });
+    let renderPending = false;
+    function scheduleRender() {
+      if (renderPending) return;
+      renderPending = true;
+      requestAnimationFrame(() => {
+        render();
+        renderPending = false;
+      });
+    }
+
+    function render() {
+      renderPipeline(ctx, canvas.width, canvas.height, 1);
+    }
+
+    uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); scheduleRender(); });
     presetPalette.addEventListener('change', (e) => {
       if (PALETTES[e.target.value]) {
         bgColor = PALETTES[e.target.value][0];
         currentColors = PALETTES[e.target.value].slice(1);
         renderPaletteUI();
-        render();
+        scheduleRender();
       }
     });
 
@@ -3174,7 +3111,7 @@
       currentColors = generateRandomPalette();
       presetPalette.value = "";
       renderPaletteUI();
-      render();
+      scheduleRender();
     });
 
     function updateGlobalUI() {
@@ -3186,32 +3123,32 @@
       document.getElementById('valGrain').innerText = compGrain.value + '%';
     }
 
-    compMargin.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compZoom.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compRotation.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compOffsetX.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compOffsetY.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compGrain.addEventListener('input', () => { updateGlobalUI(); render(); });
-    compSymmetry.addEventListener('change', () => { render(); });
+    compMargin.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compZoom.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compRotation.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compOffsetX.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compOffsetY.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compGrain.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+    compSymmetry.addEventListener('change', () => { scheduleRender(); });
 
     document.getElementById('btnResetGlobals').addEventListener('click', () => {
       compMargin.value = 0; compZoom.value = 100; compRotation.value = 0;
       compOffsetX.value = 0; compOffsetY.value = 0; compGrain.value = 15;
       compSymmetry.value = 'None';
       updateGlobalUI();
-      render();
+      scheduleRender();
     });
 
     document.getElementById('paramSeed').addEventListener('input', e => {
       document.getElementById('valSeed').innerText = e.target.value;
-      render();
+      scheduleRender();
     });
 
     document.getElementById('btnNewSeed').addEventListener('click', () => {
       const newSeed = Math.floor(Math.random() * 99999);
       document.getElementById('paramSeed').value = newSeed;
       document.getElementById('valSeed').innerText = newSeed;
-      render();
+      scheduleRender();
     });
 
     document.getElementById('btnRandomize').addEventListener('click', () => {
@@ -3236,103 +3173,23 @@
       const newSeed = Math.floor(Math.random() * 99999);
       document.getElementById('paramSeed').value = newSeed;
       document.getElementById('valSeed').innerText = newSeed;
-      render();
+      scheduleRender();
     });
 
-document.getElementById('btnExport').addEventListener('click', () => {
-      // 1. Determine export multiplier from selector
-      const qualitySelect = document.getElementById('exportScaleSelect');
-      const scaleFactor = qualitySelect ? parseFloat(qualitySelect.value) : 2;
-
-      // Calculate target output dimensions
-      const targetW = Math.round(canvas.width * scaleFactor);
-      const targetH = Math.round(canvas.height * scaleFactor);
-
+    // High-Fidelity & Clean Non-Degraded Export Pipeline
+    async function executeExport(scaleMultiplier = 1) {
       const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = targetW;
-      exportCanvas.height = targetH;
-      
-      const expCtx = exportCanvas.getContext('2d', { 
-        willReadFrequently: true,
-        colorSpace: 'srgb'
-      });
+      exportCanvas.width = canvas.width * scaleMultiplier;
+      exportCanvas.height = canvas.height * scaleMultiplier;
+      const exportCtx = exportCanvas.getContext('2d', { willReadFrequently: true, colorSpace: "srgb" });
 
-      // 2. Clear background to preserve pure base color
-      expCtx.fillStyle = bgColor;
-      expCtx.fillRect(0, 0, targetW, targetH);
+      // Clean vector rerender preserves crisp edge contrasts and color profiles
+      renderPipeline(exportCtx, exportCanvas.width, exportCanvas.height, scaleMultiplier);
 
-      // 3. Re-run active engine natively at full export resolution for crisp vector fidelity
-      const engine = ENGINES[uiEngineSelect.value];
-      const p = {};
-      Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
+      const fileName = `RRON_Studio_${exportCanvas.width}x${exportCanvas.height}_${Date.now()}.png`;
 
-      // Scale stroke weights / radii proportionally when rendering at 2x/3x print scale
-      if (scaleFactor !== 1) {
-        if ('strokeW' in p) p.strokeW = p.strokeW * scaleFactor;
-        if ('wireThickness' in p) p.wireThickness = p.wireThickness * scaleFactor;
-        if ('wireWeight' in p) p.wireWeight = p.wireWeight * scaleFactor;
-        if ('pointSize' in p) p.pointSize = p.pointSize * scaleFactor;
-      }
-
-      // Scale framing margins strictly with scaleFactor
-      const margin = parseFloat(compMargin.value) * scaleFactor;
-      const drawW = Math.max(1, targetW - margin * 2);
-      const drawH = Math.max(1, targetH - margin * 2);
-
-      const expRenderCanvas = document.createElement('canvas');
-      expRenderCanvas.width = drawW;
-      expRenderCanvas.height = drawH;
-      const expRenderCtx = expRenderCanvas.getContext('2d', { 
-        willReadFrequently: true,
-        colorSpace: 'srgb'
-      });
-
-      // Preserve exact pseudo-random seed
-      const savedSeed = globalSeed;
-      const seedInput = document.getElementById('paramSeed');
-      if (seedInput) {
-        globalSeed = parseInt(seedInput.value) || savedSeed;
-      }
-
-      // Render engine at target resolution
-      engine.render(expRenderCtx, drawW, drawH, p, currentColors);
-
-      // Apply symmetry if active
-      if (typeof applyGlobalSymmetry === 'function') {
-        applyGlobalSymmetry(compSymmetry.value, expRenderCtx, drawW, drawH);
-      }
-
-      // 4. Center and compose identical to viewport (respecting offset, rotation, zoom)
-      const zoom = parseFloat(compZoom.value) / 100;
-      const rot = (parseFloat(compRotation.value) * Math.PI) / 180;
-      const ox = (parseFloat(compOffsetX.value) / 100) * targetW;
-      const oy = (parseFloat(compOffsetY.value) / 100) * targetH;
-
-      if (drawW > 0 && drawH > 0) {
-        expCtx.save();
-        expCtx.translate(targetW / 2 + ox, targetH / 2 + oy);
-        expCtx.rotate(rot);
-        expCtx.scale(zoom, zoom);
-        expCtx.drawImage(expRenderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
-        expCtx.restore();
-      }
-
-      // 5. Film grain pass (native 1:1 grain size)
-      const grainVal = parseFloat(compGrain.value);
-      if (grainVal > 0 && typeof applyGrainPass === 'function') {
-        applyGrainPass(grainVal, expCtx, targetW, targetH);
-      }
-
-      // Restore seed
-      globalSeed = savedSeed;
-
-      // 6. Direct lossless sRGB PNG export
       exportCanvas.toBlob(async (blob) => {
         if (!blob) return;
-        const activeBtn = document.querySelector(".aspect-btn.active");
-        const ratioTag = activeBtn ? (activeBtn.dataset.ratio || `${activeBtn.dataset.w}x${activeBtn.dataset.h}`) : 'export';
-        const fileName = `RRON_Studio_${ratioTag}_${Date.now()}.png`;
-
         if (navigator.share) {
           const file = new File([blob], fileName, { type: 'image/png' });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -3352,80 +3209,10 @@ document.getElementById('btnExport').addEventListener('click', () => {
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 200);
       }, 'image/png');
-    });
+    }
 
-      expCtx.fillStyle = bgColor;
-      expCtx.fillRect(0, 0, targetW, targetH);
-
-      const engine = ENGINES[uiEngineSelect.value];
-      const p = {};
-      Object.keys(engine.params).forEach(k => p[k] = engine.params[k].val);
-
-      const margin = parseFloat(compMargin.value) * scaleFactor;
-      const drawW = Math.max(1, targetW - margin * 2);
-      const drawH = Math.max(1, targetH - margin * 2);
-
-      const expRenderCanvas = document.createElement('canvas');
-      expRenderCanvas.width = drawW;
-      expRenderCanvas.height = drawH;
-      const expRenderCtx = expRenderCanvas.getContext('2d', { 
-        willReadFrequently: true,
-        colorSpace: 'srgb'
-      });
-
-      const savedSeed = globalSeed;
-      globalSeed = parseInt(document.getElementById('paramSeed').value);
-
-      engine.render(expRenderCtx, drawW, drawH, p, currentColors);
-      applyGlobalSymmetry(compSymmetry.value, expRenderCtx, drawW, drawH);
-
-      const zoom = parseFloat(compZoom.value) / 100;
-      const rot = parseFloat(compRotation.value) * Math.PI / 180;
-      const ox = (parseFloat(compOffsetX.value) / 100) * targetW;
-      const oy = (parseFloat(compOffsetY.value) / 100) * targetH;
-
-      if (drawW > 0 && drawH > 0) {
-        expCtx.save();
-        expCtx.translate(targetW / 2 + ox, targetH / 2 + oy);
-        expCtx.rotate(rot);
-        expCtx.scale(zoom, zoom);
-        expCtx.drawImage(expRenderCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
-        expCtx.restore();
-      }
-
-      // Native grain pass without lifting black levels
-      const grainVal = parseFloat(compGrain.value);
-      if (grainVal > 0) {
-        applyGrainPass(grainVal, expCtx, targetW, targetH);
-      }
-
-      globalSeed = savedSeed;
-
-      // Use native toBlob instead of lossy atob() string conversion
-      exportCanvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const fileName = `RRON_Studio_${Date.now()}.png`;
-
-        if (navigator.share) {
-          const file = new File([blob], fileName, { type: 'image/png' });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({ files: [file], title: 'RRON Generative Art' });
-              return;
-            } catch (err) {}
-          }
-        }
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.download = fileName;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(url), 200);
-      }, 'image/png');
-    });
+    document.getElementById('btnExport').addEventListener('click', () => executeExport(1));
+    document.getElementById('btnExport2x').addEventListener('click', () => executeExport(2));
 
     document.querySelectorAll(".aspect-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
@@ -3433,16 +3220,16 @@ document.getElementById('btnExport').addEventListener('click', () => {
         e.target.classList.add("active");
         canvas.width = parseInt(e.target.dataset.w);
         canvas.height = parseInt(e.target.dataset.h);
-        render();
+        scheduleRender();
       });
     });
 
-    // Start Studio
+    // Init Studio
     canvas.width = 1080;
     canvas.height = 1920;
     renderPaletteUI();
     buildDynamicUI();
-    render();
+    scheduleRender();
   </script>
 </body>
 </html>
