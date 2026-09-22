@@ -895,6 +895,263 @@
         }
       },
 
+mandalaPrecision: {
+        name: "Mandala", group: "Geometric",
+        params: {
+          canvasCoverage: { type: 'range', min: 40, max: 300, val: 110, label: "Scale / Bleed %" },
+          rings: { type: 'range', min: 4, max: 30, val: 10, label: "Strata Tiers (Depth)" },
+          symmetry: { type: 'range', min: 8, max: 64, val: 24, label: "Harmonic Symmetry" },
+          coilProbability: { type: 'range', min: 0, max: 100, val: 65, label: "Coil Tier Ratio %" },
+          coilDensity: { type: 'range', min: 2, max: 32, val: 12, label: "Coil Density (Frequency)" },
+          coilReach: { type: 'range', min: 20, max: 180, val: 85, label: "Coil Loop Amplitude %" },
+          coilTwist: { type: 'range', min: 0, max: 100, val: 35, label: "Helical Phase Twist %" },
+          depthRhythm: { type: 'range', min: 10, max: 100, val: 75, label: "Depth Contrast %" },
+          strokeWeight: { type: 'range', min: 0.6, max: 9.0, val: 1.5, label: "Base Line Weight" },
+          colorMode: { 
+            type: 'select', 
+            options: ['Ring Alternating', 'Palette Radiant', 'Monochrome'], 
+            val: 'Ring Alternating', 
+            label: "Color Styling" 
+          }
+        },
+        render: (c, w, h, p, cols) => {
+          c.fillStyle = bgColor;
+          c.fillRect(0, 0, w, h);
+
+          const cx = Math.floor(w * 0.5);
+          const cy = Math.floor(h * 0.5);
+          const cornerDist = Math.hypot(w * 0.5, h * 0.5);
+          const maxRadius = cornerDist * (p.canvasCoverage / 100);
+
+          const numTiers = Math.max(3, Math.floor(p.rings));
+          const baseSym = Math.max(6, Math.floor(p.symmetry));
+          const baseWeight = p.strokeWeight;
+          const rhythmDepth = p.depthRhythm / 100;
+
+          const coilChance = p.coilProbability / 100;
+          const coilFreqParam = Math.max(1, Math.floor(p.coilDensity));
+          const coilAmpParam = p.coilReach / 100;
+          const twistFactor = (p.coilTwist / 100) * 0.85;
+
+          const activeCols = cols && cols.length > 0 ? cols : ['#111418'];
+          const numCols = activeCols.length;
+
+          c.lineCap = 'round';
+          c.lineJoin = 'round';
+
+          const getTierColor = (idx, total) => {
+            if (p.colorMode === 'Monochrome') return activeCols[0];
+            if (p.colorMode === 'Ring Alternating') return activeCols[idx % numCols];
+            const t = idx / Math.max(1, total - 1);
+            return activeCols[Math.min(numCols - 1, Math.floor(t * numCols))];
+          };
+
+          // 1. Concentric Harmonic Shell Tiers
+          const tiers = [];
+          const innerCoreR = Math.max(12, maxRadius * 0.07);
+
+          for (let i = 0; i < numTiers; i++) {
+            const t0 = i / numTiers;
+            const t1 = (i + 1) / numTiers;
+
+            const r0 = innerCoreR + (maxRadius - innerCoreR) * Math.pow(t0, 1.35);
+            const r1 = innerCoreR + (maxRadius - innerCoreR) * Math.pow(t1, 1.35);
+
+            tiers.push({
+              rIn: r0,
+              rOut: r1,
+              span: r1 - r0,
+              midR: (r0 + r1) * 0.5,
+              idx: i
+            });
+          }
+
+          // 2. Central Rosette Hub
+          const coreCol = getTierColor(0, numTiers);
+          c.strokeStyle = coreCol;
+          c.lineWidth = baseWeight * 1.6;
+
+          c.beginPath();
+          c.arc(cx, cy, innerCoreR * 0.35, 0, Math.PI * 2);
+          c.stroke();
+
+          c.beginPath();
+          c.arc(cx, cy, innerCoreR * 0.75, 0, Math.PI * 2);
+          c.stroke();
+
+          // Hub Helical Coil (Clean closed periodicity)
+          const eyeCoils = baseSym * 2;
+          const eyeSamples = eyeCoils * 18;
+          const eyeAmp = innerCoreR * 0.15;
+          const eyeTrack = innerCoreR * 0.55;
+
+          c.lineWidth = baseWeight * 0.75;
+          c.beginPath();
+          for (let s = 0; s < eyeSamples; s++) {
+            const phi = (s / eyeSamples) * Math.PI * 2;
+            const th = phi * eyeCoils;
+            const rCur = eyeTrack + Math.sin(th) * eyeAmp;
+            const aTot = phi + (Math.cos(th) * eyeAmp) / eyeTrack;
+            const px = cx + Math.cos(aTot) * rCur;
+            const py = cy + Math.sin(aTot) * rCur;
+            if (s === 0) c.moveTo(px, py);
+            else c.lineTo(px, py);
+          }
+          c.closePath();
+          c.stroke();
+
+          // 3. Render Strata Tiers
+          for (let k = 0; k < tiers.length; k++) {
+            const tier = tiers[k];
+            const tierCol = getTierColor(tier.idx, numTiers);
+            c.strokeStyle = tierCol;
+            c.fillStyle = tierCol;
+
+            const tierHash = hash(tier.idx * 73 + globalSeed, 31);
+            let sym = baseSym;
+            if (tierHash > 0.65) sym = baseSym * 2;
+            else if (tierHash < 0.28 && baseSym % 2 === 0) sym = Math.floor(baseSym * 0.5);
+
+            const tierWeight = baseWeight * (0.75 + ((tier.idx % 2) * rhythmDepth * 0.95));
+            c.lineWidth = tierWeight;
+
+            const isCoilTier = (tierHash < coilChance) || (k === tiers.length - 1 && coilChance > 0.15);
+
+            if (isCoilTier) {
+              // Exact integer harmonics to avoid seam jumps
+              const totalCoils = Math.round(sym * coilFreqParam);
+              const samples = totalCoils * 20;
+              const loopAmplitude = (tier.span * 0.48) * coilAmpParam;
+              const trackR = tier.midR;
+              const twistSign = (tier.idx % 2 === 0 ? 1 : -1);
+
+              c.beginPath();
+              for (let s = 0; s < samples; s++) {
+                const phi = (s / samples) * Math.PI * 2;
+                const theta = phi * totalCoils;
+
+                // Modulate amplitude so it strictly meets zero jump at the 2PI boundary
+                const radialOffset = Math.sin(theta) * loopAmplitude;
+                const angularShear = (Math.cos(theta) * loopAmplitude) / trackR;
+                const currentAngle = phi + angularShear * (1.0 + twistFactor * twistSign);
+                const currentRadius = trackR + radialOffset;
+
+                const px = cx + Math.cos(currentAngle) * currentRadius;
+                const py = cy + Math.sin(currentAngle) * currentRadius;
+
+                if (s === 0) c.moveTo(px, py);
+                else c.lineTo(px, py);
+              }
+              c.closePath();
+              c.stroke();
+
+              // Parallel tracking guide rings
+              c.lineWidth = baseWeight * 0.65;
+              c.beginPath();
+              c.arc(cx, cy, Math.max(1, trackR - loopAmplitude), 0, Math.PI * 2);
+              c.stroke();
+
+              c.beginPath();
+              c.arc(cx, cy, trackR + loopAmplitude, 0, Math.PI * 2);
+              c.stroke();
+
+              // Outer satellite beads
+              if (tierHash > 0.4) {
+                const dotCount = Math.floor(totalCoils / 2);
+                const dotStep = (Math.PI * 2) / dotCount;
+                const dotR = baseWeight * 0.95;
+                for (let d = 0; d < dotCount; d++) {
+                  const da = d * dotStep;
+                  const bx = cx + Math.cos(da) * (trackR + loopAmplitude);
+                  const by = cy + Math.sin(da) * (trackR + loopAmplitude);
+                  c.beginPath();
+                  c.arc(bx, by, dotR, 0, Math.PI * 2);
+                  c.fill();
+                }
+              }
+            } else {
+              const altType = Math.floor(hash(tier.idx * 101 + globalSeed, 17) * 3);
+
+              if (altType === 0) {
+                // Diamond Lattice Guilloche Mesh
+                const count = sym * 2;
+                const stepAngle = (Math.PI * 2) / count;
+                const chordOffset = stepAngle * 2.5;
+
+                c.beginPath();
+                for (let i = 0; i < count; i++) {
+                  const a0 = i * stepAngle;
+                  const pIn = { x: cx + Math.cos(a0) * tier.rIn, y: cy + Math.sin(a0) * tier.rIn };
+                  const pOut1 = { x: cx + Math.cos(a0 + chordOffset) * tier.rOut, y: cy + Math.sin(a0 + chordOffset) * tier.rOut };
+                  const pOut2 = { x: cx + Math.cos(a0 - chordOffset) * tier.rOut, y: cy + Math.sin(a0 - chordOffset) * tier.rOut };
+
+                  c.moveTo(pIn.x, pIn.y);
+                  c.lineTo(pOut1.x, pOut1.y);
+                  c.moveTo(pIn.x, pIn.y);
+                  c.lineTo(pOut2.x, pOut2.y);
+                }
+                c.stroke();
+              } else if (altType === 1) {
+                // Lanceolate Petal Spindles
+                const stepAngle = (Math.PI * 2) / sym;
+                const spread = stepAngle * 0.4;
+                c.lineWidth = baseWeight * 1.15;
+                c.beginPath();
+
+                for (let i = 0; i < sym; i++) {
+                  const a = i * stepAngle;
+                  const p0 = { x: cx + Math.cos(a - spread) * tier.rIn, y: cy + Math.sin(a - spread) * tier.rIn };
+                  const p1 = { x: cx + Math.cos(a + spread) * tier.rIn, y: cy + Math.sin(a + spread) * tier.rIn };
+                  const pApex = { x: cx + Math.cos(a) * tier.rOut, y: cy + Math.sin(a) * tier.rOut };
+                  const pMidL = { x: cx + Math.cos(a - spread * 1.4) * tier.midR, y: cy + Math.sin(a - spread * 1.4) * tier.midR };
+                  const pMidR = { x: cx + Math.cos(a + spread * 1.4) * tier.midR, y: cy + Math.sin(a + spread * 1.4) * tier.midR };
+
+                  c.moveTo(p0.x, p0.y);
+                  c.quadraticCurveTo(pMidL.x, pMidL.y, pApex.x, pApex.y);
+                  c.moveTo(p1.x, p1.y);
+                  c.quadraticCurveTo(pMidR.x, pMidR.y, pApex.x, pApex.y);
+                  c.moveTo(cx + Math.cos(a) * tier.rIn, cy + Math.sin(a) * tier.rIn);
+                  c.lineTo(pApex.x, pApex.y);
+                }
+                c.stroke();
+              } else {
+                // Dual Concentric Rail with Dentils
+                c.beginPath();
+                c.arc(cx, cy, tier.rIn, 0, Math.PI * 2);
+                c.stroke();
+
+                c.beginPath();
+                c.arc(cx, cy, tier.rOut, 0, Math.PI * 2);
+                c.stroke();
+
+                const dentils = sym * 4;
+                const dentilStep = (Math.PI * 2) / dentils;
+                c.lineWidth = baseWeight * 0.7;
+                c.beginPath();
+                for (let i = 0; i < dentils; i++) {
+                  const a = i * dentilStep;
+                  c.moveTo(cx + Math.cos(a) * tier.rIn, cy + Math.sin(a) * tier.rIn);
+                  c.lineTo(cx + Math.cos(a) * tier.rOut, cy + Math.sin(a) * tier.rOut);
+                }
+                c.stroke();
+              }
+            }
+          }
+
+          // 4. Perimeter Guilloche Frame
+          c.strokeStyle = getTierColor(numTiers - 1, numTiers);
+          c.lineWidth = baseWeight * 1.8;
+          c.beginPath();
+          c.arc(cx, cy, maxRadius, 0, Math.PI * 2);
+          c.stroke();
+
+          c.lineWidth = baseWeight * 0.85;
+          c.beginPath();
+          c.arc(cx, cy, maxRadius + baseWeight * 3.5, 0, Math.PI * 2);
+          c.stroke();
+        }
+      },
+      
       checkerboard: {
         name: "Checkerboard", group: "Geometric",
         params: {
