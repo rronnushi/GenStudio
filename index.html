@@ -2166,403 +2166,468 @@ isoBlocks: {
       },
 
 isometricGreeble: {
-        name: "Isometric City 2.0", group: "Geometric",
-        params: {
-          density: { type: 'range', min: 8, max: 240, val: 42, label: "City Block Scale" },
-          subdiv: { type: 'range', min: 0.5, max: 8.0, val: 4.4, label: "Detail Depth" },
-          maxSlab: { type: 'range', min: 1, max: 24, val: 6, label: "Max Plateau Size" },
-          ht: { type: 'range', min: 10, max: 1200, val: 220, label: "Max Elevation" },
-          relief: { type: 'range', min: 0, max: 100, val: 60, label: "Height Contrast %" },
-          ribbing: { type: 'range', min: 0, max: 100, val: 45, label: "Ribbed Runners %" },
-          terraces: { type: 'range', min: 0, max: 100, val: 45, label: "Stepped Terraces %" },
-          isoAngle: { type: 'range', min: 0, max: 360, val: 0, label: "Isometric Angle" },
-          symmetryMode: { type: 'select', options: ['None', 'Bilateral', 'Quad'], val: 'None', label: "Symmetry Type" },
-          camZoom: { type: 'range', min: 10, max: 500, val: 100, label: "Camera Zoom %" },
-          outlineWidth: { type: 'range', min: 0, max: 10, val: 1.0, label: "Outline Width" }
-        },
-        render: (c, w, h, p, cols) => {
-          c.fillStyle = bgColor;
-          c.fillRect(0, 0, w, h);
-          c.lineJoin = 'miter';
+  name: "Isometric City 2.0", group: "Geometric",
+  params: {
+    density: { type: 'range', min: 8, max: 240, val: 42, label: "City Block Scale" },
+    subdiv: { type: 'range', min: 0.5, max: 8.0, val: 4.4, label: "Detail Depth" },
+    maxSlab: { type: 'range', min: 1, max: 24, val: 6, label: "Max Plateau Size" },
+    ht: { type: 'range', min: 10, max: 1200, val: 220, label: "Max Elevation" },
+    relief: { type: 'range', min: 0, max: 100, val: 60, label: "Height Contrast %" },
+    ribbing: { type: 'range', min: 0, max: 100, val: 45, label: "Ribbed Runners %" },
+    terraces: { type: 'range', min: 0, max: 100, val: 45, label: "Stepped Terraces %" },
+    isoAngle: { type: 'range', min: 0, max: 360, val: 0, label: "Isometric Angle" },
+    symmetryMode: { type: 'select', options: ['None', 'Bilateral', 'Quad'], val: 'None', label: "Symmetry Type" },
+    camZoom: { type: 'range', min: 10, max: 500, val: 100, label: "Camera Zoom %" },
+    outlineWidth: { type: 'range', min: 0, max: 10, val: 1.0, label: "Outline Width" },
+    renderStyle: { type: 'select', options: ['Standard', 'Architectural Linework', 'Both'], val: 'Standard', label: "Render Style" },
+    hatchDensity: { type: 'range', min: 2, max: 20, val: 5, label: "Facade Line Spacing" }
+  },
+  render: (c, w, h, p, cols) => {
+    const isInkOnly = p.renderStyle === 'Architectural Linework';
+    const hasLinework = p.renderStyle === 'Architectural Linework' || p.renderStyle === 'Both';
 
-          const diag = Math.hypot(w, h);
-          const blocksAcross = Math.max(6, Math.floor(p.density));
-          const nominalUnit = Math.max(2.5, diag / blocksAcross);
-          const worldRadius = Math.ceil(blocksAcross * 0.95);
+    c.fillStyle = isInkOnly ? '#F5F5F3' : bgColor;
+    c.fillRect(0, 0, w, h);
+    c.lineJoin = 'miter';
 
-          const zoomFac = Math.max(0.05, p.camZoom / 100);
-          const baseUnit = nominalUnit * zoomFac;
-          const halfTW = baseUnit;
-          const halfTH = baseUnit * 0.5;
+    const diag = Math.hypot(w, h);
+    const blocksAcross = Math.max(6, Math.floor(p.density));
+    const nominalUnit = Math.max(2.5, diag / blocksAcross);
+    const worldRadius = Math.ceil(blocksAcross * 0.95);
 
-          const cx = w * 0.5;
-          const cy = h * 0.5;
-          const seedShift = (globalSeed % 1000);
+    const zoomFac = Math.max(0.05, p.camZoom / 100);
+    const baseUnit = nominalUnit * zoomFac;
+    const halfTW = baseUnit;
+    const halfTH = baseUnit * 0.5;
 
-          const angleRad = (p.isoAngle * Math.PI) / 180;
-          const cosA = Math.cos(angleRad);
-          const sinA = Math.sin(angleRad);
+    const cx = w * 0.5;
+    const cy = h * 0.5;
+    const seedShift = (globalSeed % 1000);
 
-          // 1. Recursive Partitioning
-          const rawDepth = p.subdiv;
-          const baseDepth = Math.floor(rawDepth);
-          const fracDepth = rawDepth - baseDepth;
-          const maxSlabThreshold = Math.max(1, Math.floor(p.maxSlab));
+    const angleRad = (p.isoAngle * Math.PI) / 180;
+    const cosA = Math.cos(angleRad);
+    const sinA = Math.sin(angleRad);
 
-          const baseBlocks = [];
+    // 1. Recursive Partitioning
+    const rawDepth = p.subdiv;
+    const baseDepth = Math.floor(rawDepth);
+    const fracDepth = rawDepth - baseDepth;
+    const maxSlabThreshold = Math.max(1, Math.floor(p.maxSlab));
 
-          const splitSlab = (gx, gy, gw, gh, depth) => {
-            const minDim = Math.min(gw, gh);
-            const maxDim = Math.max(gw, gh);
+    const baseBlocks = [];
 
-            let shouldStop = false;
-            if (depth <= 0) {
-              shouldStop = true;
-            } else if (depth === 1 && fracDepth > 0) {
-              if (random() > fracDepth && maxDim <= maxSlabThreshold) shouldStop = true;
-            } else if (minDim <= 1) {
-              shouldStop = true;
-            } else if (depth < baseDepth && maxDim <= maxSlabThreshold && random() < 0.18) {
-              shouldStop = true;
-            }
+    const splitSlab = (gx, gy, gw, gh, depth) => {
+      const minDim = Math.min(gw, gh);
+      const maxDim = Math.max(gw, gh);
 
-            if (shouldStop) {
-              const rRoll = random() * 100;
+      let shouldStop = false;
+      if (depth <= 0) {
+        shouldStop = true;
+      } else if (depth === 1 && fracDepth > 0) {
+        if (random() > fracDepth && maxDim <= maxSlabThreshold) shouldStop = true;
+      } else if (minDim <= 1) {
+        shouldStop = true;
+      } else if (depth < baseDepth && maxDim <= maxSlabThreshold && random() < 0.18) {
+        shouldStop = true;
+      }
 
-              // Type A: Segmented Urban Row-Buildings & Runners
-              if (minDim >= 2 && maxDim >= 3 && rRoll < p.ribbing) {
-                const isHoriz = gw >= gh;
-                const totalTracks = isHoriz ? gh : gw;
-                const totalLength = isHoriz ? gw : gh;
-                let trackPos = 0;
+      if (shouldStop) {
+        const rRoll = random() * 100;
 
-                while (trackPos < totalTracks) {
-                  const remainingTracks = totalTracks - trackPos;
-                  let laneDepth = 1;
-                  const dRoll = random();
-                  if (remainingTracks >= 3 && dRoll > 0.7) laneDepth = 3;
-                  else if (remainingTracks >= 2 && dRoll > 0.4) laneDepth = 2;
+        // Type A: Segmented Urban Row-Buildings & Runners
+        if (minDim >= 2 && maxDim >= 3 && rRoll < p.ribbing) {
+          const isHoriz = gw >= gh;
+          const totalTracks = isHoriz ? gh : gw;
+          const totalLength = isHoriz ? gw : gh;
+          let trackPos = 0;
 
-                  let lengthPos = 0;
-                  let buildingIdx = 0;
+          while (trackPos < totalTracks) {
+            const remainingTracks = totalTracks - trackPos;
+            let laneDepth = 1;
+            const dRoll = random();
+            if (remainingTracks >= 3 && dRoll > 0.7) laneDepth = 3;
+            else if (remainingTracks >= 2 && dRoll > 0.4) laneDepth = 2;
 
-                  while (lengthPos < totalLength) {
-                    const remainingLen = totalLength - lengthPos;
-                    let bLen = Math.min(remainingLen, Math.floor(randomRange(2, 5)));
-                    if (remainingLen - bLen === 1) bLen = remainingLen;
+            let lengthPos = 0;
+            let buildingIdx = 0;
 
-                    const buildingJitter = randomRange(0.8, 1.3);
+            while (lengthPos < totalLength) {
+              const remainingLen = totalLength - lengthPos;
+              let bLen = Math.min(remainingLen, Math.floor(randomRange(2, 5)));
+              if (remainingLen - bLen === 1) bLen = remainingLen;
 
-                    if (isHoriz) {
-                      baseBlocks.push({
-                        gx: gx + lengthPos, gy: gy + trackPos,
-                        gw: bLen, gh: laneDepth,
-                        type: 1, ribIdx: trackPos + buildingIdx, laneWidth: laneDepth,
-                        buildingJitter
-                      });
-                    } else {
-                      baseBlocks.push({
-                        gx: gx + trackPos, gy: gy + lengthPos,
-                        gw: laneDepth, gh: bLen,
-                        type: 1, ribIdx: trackPos + buildingIdx, laneWidth: laneDepth,
-                        buildingJitter
-                      });
-                    }
+              const buildingJitter = randomRange(0.8, 1.3);
 
-                    lengthPos += bLen;
-                    buildingIdx++;
-                  }
-                  trackPos += laneDepth;
-                }
+              if (isHoriz) {
+                baseBlocks.push({
+                  gx: gx + lengthPos, gy: gy + trackPos,
+                  gw: bLen, gh: laneDepth,
+                  type: 1, ribIdx: trackPos + buildingIdx, laneWidth: laneDepth,
+                  buildingJitter
+                });
+              } else {
+                baseBlocks.push({
+                  gx: gx + trackPos, gy: gy + lengthPos,
+                  gw: laneDepth, gh: bLen,
+                  type: 1, ribIdx: trackPos + buildingIdx, laneWidth: laneDepth,
+                  buildingJitter
+                });
               }
-              // Type B: Organic Mixed Terraces (Scattered ziggurats, asymmetric setbacks, and flat courtyards)
-              else if (minDim >= 1 && rRoll < (p.ribbing + p.terraces)) {
-                const footprintMax = Math.max(1.8, Math.min(4.0, maxSlabThreshold * 0.8));
-                const colsTerrace = Math.max(1, Math.round(gw / footprintMax));
-                const rowsTerrace = Math.max(1, Math.round(gh / footprintMax));
-                const cellW = gw / colsTerrace;
-                const cellH = gh / rowsTerrace;
 
-                for (let ry = 0; ry < rowsTerrace; ry++) {
-                  for (let rx = 0; rx < colsTerrace; rx++) {
-                    const tGx = gx + rx * cellW;
-                    const tGy = gy + ry * cellH;
-                    const tMinDim = Math.min(cellW, cellH);
-
-                    const cellSeed = hash(Math.floor(tGx * 131 + tGy * 257), globalSeed);
-                    const terraceRoll = (cellSeed * 100) % 100;
-
-                    // 1. Interspersed Flat Anchor Slab / Courtyard (Breaks repetitive steps)
-                    if (terraceRoll < 28) {
-                      baseBlocks.push({
-                        gx: tGx, gy: tGy, gw: cellW, gh: cellH,
-                        type: 0, heightMod: 0.85 + (cellSeed * 0.4)
-                      });
-                      continue;
-                    }
-
-                    // 2. Varied Tier Count per Sub-cell
-                    let maxTiers = 2;
-                    if (p.terraces > 65 && tMinDim >= 2.0 && terraceRoll > 60) maxTiers = 4;
-                    else if (p.terraces > 35 && tMinDim >= 1.4 && terraceRoll > 40) maxTiers = 3;
-
-                    let curGw = cellW;
-                    let curGh = cellH;
-                    let curGx = tGx;
-                    let curGy = tGy;
-
-                    const terraceJitter = 0.8 + (cellSeed * 0.55);
-                    const isAsymmetricSetback = (terraceRoll % 2 === 0);
-
-                    for (let t = 0; t < maxTiers; t++) {
-                      baseBlocks.push({
-                        gx: curGx, gy: curGy, gw: curGw, gh: curGh,
-                        type: 2, tierIdx: t, maxTiers: maxTiers,
-                        terraceJitter,
-                        clusterHash: Math.floor(cellSeed * 1000)
-                      });
-
-                      // Asymmetric Setback vs Concentric Ziggurat Inset
-                      let stepX, stepY;
-                      if (isAsymmetricSetback) {
-                        // Steps back from one or two sides like a high-rise setback
-                        stepX = curGw > 2.0 ? (curGw * randomRange(0.2, 0.35)) : 0.25;
-                        stepY = curGh > 2.0 ? (curGh * randomRange(0.1, 0.25)) : 0.15;
-                        if (curGw - stepX <= 0.4 || curGh - stepY <= 0.4) break;
-                        curGx += (t % 2 === 0 ? stepX : 0);
-                        curGy += (t % 2 === 1 ? stepY : 0);
-                        curGw -= stepX;
-                        curGh -= stepY;
-                      } else {
-                        // Classical concentric ziggurat
-                        const insetRatio = randomRange(0.14, 0.26);
-                        stepX = Math.max(0.18, curGw * insetRatio);
-                        stepY = Math.max(0.18, curGh * insetRatio);
-                        if (curGw - stepX * 2 <= 0.3 || curGh - stepY * 2 <= 0.3) break;
-                        curGx += stepX;
-                        curGy += stepY;
-                        curGw -= stepX * 2;
-                        curGh -= stepY * 2;
-                      }
-                    }
-                  }
-                }
-              }
-              // Type C: Standard Monoliths & Mixed Plazas
-              else {
-                if (minDim >= 3 && random() < 0.32) {
-                  const cutW = Math.max(1, Math.floor(gw * randomRange(0.2, 0.8)));
-                  const cutH = Math.max(1, Math.floor(gh * randomRange(0.2, 0.8)));
-                  baseBlocks.push({ gx, gy, gw: cutW, gh: cutH, type: 0, heightMod: 1.3 });
-                  baseBlocks.push({ gx: gx + cutW, gy, gw: gw - cutW, gh, type: 0, heightMod: 0.75 });
-                  baseBlocks.push({ gx, gy: gy + cutH, gw: cutW, gh: gh - cutH, type: 0, heightMod: 1.05 });
-                } else {
-                  baseBlocks.push({ gx, gy, gw, gh, type: 0, heightMod: 1.0 });
-                }
-              }
-              return;
+              lengthPos += bLen;
+              buildingIdx++;
             }
-
-            const splitH = gw > gh ? true : (gw < gh ? false : random() > 0.5);
-            const ratio = randomRange(0.15, 0.85);
-
-            if (splitH) {
-              const cut = Math.max(1, Math.min(gw - 1, Math.floor(gw * ratio)));
-              splitSlab(gx, gy, cut, gh, depth - 1);
-              splitSlab(gx + cut, gy, gw - cut, gh, depth - 1);
-            } else {
-              const cut = Math.max(1, Math.min(gh - 1, Math.floor(gh * ratio)));
-              splitSlab(gx, gy, gw, cut, depth - 1);
-              splitSlab(gx, gy + cut, gw, gh - cut, depth - 1);
-            }
-          };
-
-          if (p.symmetryMode === 'Quad') {
-            splitSlab(0, 0, worldRadius, worldRadius, baseDepth + 1);
-          } else if (p.symmetryMode === 'Bilateral') {
-            splitSlab(0, -worldRadius, worldRadius, worldRadius * 2, baseDepth + 1);
-          } else {
-            splitSlab(-worldRadius, -worldRadius, worldRadius * 2, worldRadius * 2, baseDepth + 1);
-          }
-
-          // 2. Pre-calculate Elevation & High-Contrast Colors
-          const reliefFac = p.relief / 100;
-          const numCols = cols.length;
-
-          for (let i = 0; i < baseBlocks.length; i++) {
-            const b = baseBlocks[i];
-            const midX = b.gx + b.gw * 0.5;
-            const midY = b.gy + b.gh * 0.5;
-
-            const baseTerrain = noise2D((midX + seedShift) * 0.045, (midY + seedShift) * 0.045);
-            const clusterBoost = Math.pow(Math.max(0, baseTerrain), 2.4) * 2.6;
-            const jitter = ((hash(b.gx * 91 + globalSeed, b.gy * 53) - 0.5) * reliefFac);
-
-            let hVal = (baseTerrain * 0.4 + 0.3 + clusterBoost + jitter) * p.ht * zoomFac;
-
-            if (b.type === 1) { // Segmented Runners
-              const rhythmMod = (b.laneWidth >= 3 ? 18 : (b.laneWidth === 2 ? 10 : 5)) * zoomFac;
-              hVal = (hVal + (b.ribIdx % 2 === 0 ? rhythmMod : -rhythmMod * 0.6)) * (b.buildingJitter || 1.0);
-              b.baseZ = 0;
-            } else if (b.type === 2) { // Stepped Terraces
-              const adjustedH = hVal * (b.terraceJitter || 1.0);
-              const tierH = Math.max(5 * zoomFac, (adjustedH * 0.5) / b.maxTiers);
-              b.baseZ = b.tierIdx * tierH;
-              hVal = (b.tierIdx + 1) * tierH;
-            } else { // Standard Slabs
-              if (b.heightMod) hVal *= b.heightMod;
-              b.baseZ = 0;
-            }
-
-            b.h = Math.max(2.5 * zoomFac, hVal);
-
-            // Decoupled Spatial Color Assignment
-            const cellHash = Math.abs(Math.floor(hash(b.gx * 197 + globalSeed, b.gy * 283 + globalSeed) * 100000));
-            const checker = (Math.abs(Math.floor(b.gx)) ^ Math.abs(Math.floor(b.gy))) & 1 ? 1 : 0;
-            let cIdx = (cellHash + checker) % numCols;
-
-            if (b.type === 1) {
-              cIdx = (cIdx + b.ribIdx * 2 + Math.floor(b.gw + b.gh)) % numCols;
-            } else if (b.type === 2) {
-              // Scramble tier colors so pedestals contrast sharply with upper stories
-              const tierOffset = (b.tierIdx * 3) + ((b.clusterHash || 0) % numCols);
-              cIdx = (cIdx + tierOffset) % numCols;
-            }
-
-            b.col = cols[cIdx];
-          }
-
-          // 3. Mirror Coordinates
-          const finalBlocks = [];
-          const sym = p.symmetryMode;
-
-          for (let i = 0; i < baseBlocks.length; i++) {
-            const b = baseBlocks[i];
-            finalBlocks.push({ gx: b.gx, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col });
-
-            if (sym === 'Bilateral') {
-              finalBlocks.push({ gx: -b.gx - b.gw, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col });
-            } else if (sym === 'Quad') {
-              finalBlocks.push({ gx: -b.gx - b.gw, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col });
-              finalBlocks.push({ gx: b.gx, gy: -b.gy - b.gh, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col });
-              finalBlocks.push({ gx: -b.gx - b.gw, gy: -b.gy - b.gh, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col });
-            }
-          }
-
-          // 4. Depth Sorting Key
-          for (let i = 0; i < finalBlocks.length; i++) {
-            const b = finalBlocks[i];
-            const bMidX = b.gx + b.gw * 0.5;
-            const bMidY = b.gy + b.gh * 0.5;
-            const rx = bMidX * cosA - bMidY * sinA;
-            const ry = bMidX * sinA + bMidY * cosA;
-            b.depthKey = (rx + ry) + (b.baseZ * 0.001);
-          }
-
-          finalBlocks.sort((a, b) => a.depthKey - b.depthKey);
-
-          // Fast Shading Cache
-          const shadeCache = {};
-          const getShaded = (hex, factor) => {
-            const key = hex + factor;
-            if (shadeCache[key]) return shadeCache[key];
-            const num = parseInt(hex.slice(1), 16);
-            const r = Math.floor(((num >> 16) & 255) * factor);
-            const g = Math.floor(((num >> 8) & 255) * factor);
-            const b = Math.floor((num & 255) * factor);
-            const res = `rgb(${r},${g},${b})`;
-            shadeCache[key] = res;
-            return res;
-          };
-
-          const strokeColor = '#121417';
-          const outlineW = p.outlineWidth;
-          c.lineWidth = outlineW;
-          c.strokeStyle = strokeColor;
-
-          // 5. Per-Face Render Loop with Immediate Occlusion Stenciling
-          for (let i = 0; i < finalBlocks.length; i++) {
-            const b = finalBlocks[i];
-            const elevation = b.h - b.baseZ;
-            const bz = b.baseZ;
-
-            const xA = b.gx, yA = b.gy;
-            const xB = b.gx + b.gw, yB = b.gy;
-            const xC = b.gx + b.gw, yC = b.gy + b.gh;
-            const xD = b.gx, yD = b.gy + b.gh;
-
-            const rx0 = xA * cosA - yA * sinA, ry0 = xA * sinA + yA * cosA;
-            const rx1 = xB * cosA - yB * sinA, ry1 = xB * sinA + yB * cosA;
-            const rx2 = xC * cosA - yC * sinA, ry2 = xC * sinA + yC * cosA;
-            const rx3 = xD * cosA - yD * sinA, ry3 = xD * sinA + yD * cosA;
-
-            const p0x = cx + (rx0 - ry0) * halfTW, p0y = cy + (rx0 + ry0) * halfTH - bz;
-            const p1x = cx + (rx1 - ry1) * halfTW, p1y = cy + (rx1 + ry1) * halfTH - bz;
-            const p2x = cx + (rx2 - ry2) * halfTW, p2y = cy + (rx2 + ry2) * halfTH - bz;
-            const p3x = cx + (rx3 - ry3) * halfTW, p3y = cy + (rx3 + ry3) * halfTH - bz;
-
-            // Frustum Cull
-            const minY = Math.min(p0y, p1y, p2y, p3y) - elevation;
-            const maxY = Math.max(p0y, p1y, p2y, p3y);
-            const minX = Math.min(p0x, p1x, p2x, p3x);
-            const maxX = Math.max(p0x, p1x, p2x, p3x);
-
-            if (maxY < -25 || minY > h + 25 || maxX < -25 || minX > w + 25) {
-              continue;
-            }
-
-            const baseColor = b.col;
-
-            // Extruded Walls
-            if (elevation > 0) {
-              if (p2x > p3x) {
-                c.fillStyle = getShaded(baseColor, 0.72);
-                c.beginPath();
-                c.moveTo(p3x, p3y - elevation); c.lineTo(p2x, p2y - elevation);
-                c.lineTo(p2x, p2y); c.lineTo(p3x, p3y); c.closePath();
-                c.fill();
-                if (outlineW > 0) c.stroke();
-              }
-              if (p1x > p2x) {
-                c.fillStyle = getShaded(baseColor, 0.52);
-                c.beginPath();
-                c.moveTo(p2x, p2y - elevation); c.lineTo(p1x, p1y - elevation);
-                c.lineTo(p1x, p1y); c.lineTo(p2x, p2y); c.closePath();
-                c.fill();
-                if (outlineW > 0) c.stroke();
-              }
-              if (p0x > p1x) {
-                c.fillStyle = getShaded(baseColor, 0.62);
-                c.beginPath();
-                c.moveTo(p1x, p1y - elevation); c.lineTo(p0x, p0y - elevation);
-                c.lineTo(p0x, p0y); c.lineTo(p1x, p1y); c.closePath();
-                c.fill();
-                if (outlineW > 0) c.stroke();
-              }
-              if (p3x > p0x) {
-                c.fillStyle = getShaded(baseColor, 0.82);
-                c.beginPath();
-                c.moveTo(p0x, p0y - elevation); c.lineTo(p3x, p3y - elevation);
-                c.lineTo(p3x, p3y); c.lineTo(p0x, p0y); c.closePath();
-                c.fill();
-                if (outlineW > 0) c.stroke();
-              }
-            }
-
-            // Lit Roof Slab
-            c.fillStyle = baseColor;
-            c.beginPath();
-            c.moveTo(p0x, p0y - elevation);
-            c.lineTo(p1x, p1y - elevation);
-            c.lineTo(p2x, p2y - elevation);
-            c.lineTo(p3x, p3y - elevation);
-            c.closePath();
-            c.fill();
-            if (outlineW > 0) c.stroke();
+            trackPos += laneDepth;
           }
         }
-      },
+        // Type B: Organic Mixed Terraces
+        else if (minDim >= 1 && rRoll < (p.ribbing + p.terraces)) {
+          const footprintMax = Math.max(1.8, Math.min(4.0, maxSlabThreshold * 0.8));
+          const colsTerrace = Math.max(1, Math.round(gw / footprintMax));
+          const rowsTerrace = Math.max(1, Math.round(gh / footprintMax));
+          const cellW = gw / colsTerrace;
+          const cellH = gh / rowsTerrace;
 
+          for (let ry = 0; ry < rowsTerrace; ry++) {
+            for (let rx = 0; rx < colsTerrace; rx++) {
+              const tGx = gx + rx * cellW;
+              const tGy = gy + ry * cellH;
+              const tMinDim = Math.min(cellW, cellH);
+
+              const cellSeed = hash(Math.floor(tGx * 131 + tGy * 257), globalSeed);
+              const terraceRoll = (cellSeed * 100) % 100;
+
+              // 1. Interspersed Flat Anchor Slab / Courtyard
+              if (terraceRoll < 28) {
+                baseBlocks.push({
+                  gx: tGx, gy: tGy, gw: cellW, gh: cellH,
+                  type: 0, heightMod: 0.85 + (cellSeed * 0.4)
+                });
+                continue;
+              }
+
+              // 2. Varied Tier Count per Sub-cell
+              let maxTiers = 2;
+              if (p.terraces > 65 && tMinDim >= 2.0 && terraceRoll > 60) maxTiers = 4;
+              else if (p.terraces > 35 && tMinDim >= 1.4 && terraceRoll > 40) maxTiers = 3;
+
+              let curGw = cellW;
+              let curGh = cellH;
+              let curGx = tGx;
+              let curGy = tGy;
+
+              const terraceJitter = 0.8 + (cellSeed * 0.55);
+              const isAsymmetricSetback = (terraceRoll % 2 === 0);
+
+              for (let t = 0; t < maxTiers; t++) {
+                baseBlocks.push({
+                  gx: curGx, gy: curGy, gw: curGw, gh: curGh,
+                  type: 2, tierIdx: t, maxTiers: maxTiers,
+                  terraceJitter,
+                  clusterHash: Math.floor(cellSeed * 1000)
+                });
+
+                let stepX, stepY;
+                if (isAsymmetricSetback) {
+                  stepX = curGw > 2.0 ? (curGw * randomRange(0.2, 0.35)) : 0.25;
+                  stepY = curGh > 2.0 ? (curGh * randomRange(0.1, 0.25)) : 0.15;
+                  if (curGw - stepX <= 0.4 || curGh - stepY <= 0.4) break;
+                  curGx += (t % 2 === 0 ? stepX : 0);
+                  curGy += (t % 2 === 1 ? stepY : 0);
+                  curGw -= stepX;
+                  curGh -= stepY;
+                } else {
+                  const insetRatio = randomRange(0.14, 0.26);
+                  stepX = Math.max(0.18, curGw * insetRatio);
+                  stepY = Math.max(0.18, curGh * insetRatio);
+                  if (curGw - stepX * 2 <= 0.3 || curGh - stepY * 2 <= 0.3) break;
+                  curGx += stepX;
+                  curGy += stepY;
+                  curGw -= stepX * 2;
+                  curGh -= stepY * 2;
+                }
+              }
+            }
+          }
+        }
+        // Type C: Standard Monoliths & Mixed Plazas
+        else {
+          if (minDim >= 3 && random() < 0.32) {
+            const cutW = Math.max(1, Math.floor(gw * randomRange(0.2, 0.8)));
+            const cutH = Math.max(1, Math.floor(gh * randomRange(0.2, 0.8)));
+            baseBlocks.push({ gx, gy, gw: cutW, gh: cutH, type: 0, heightMod: 1.3 });
+            baseBlocks.push({ gx: gx + cutW, gy, gw: gw - cutW, gh, type: 0, heightMod: 0.75 });
+            baseBlocks.push({ gx, gy: gy + cutH, gw: cutW, gh: gh - cutH, type: 0, heightMod: 1.05 });
+          } else {
+            baseBlocks.push({ gx, gy, gw, gh, type: 0, heightMod: 1.0 });
+          }
+        }
+        return;
+      }
+
+      const splitH = gw > gh ? true : (gw < gh ? false : random() > 0.5);
+      const ratio = randomRange(0.15, 0.85);
+
+      if (splitH) {
+        const cut = Math.max(1, Math.min(gw - 1, Math.floor(gw * ratio)));
+        splitSlab(gx, gy, cut, gh, depth - 1);
+        splitSlab(gx + cut, gy, gw - cut, gh, depth - 1);
+      } else {
+        const cut = Math.max(1, Math.min(gh - 1, Math.floor(gh * ratio)));
+        splitSlab(gx, gy, gw, cut, depth - 1);
+        splitSlab(gx, gy + cut, gw, gh - cut, depth - 1);
+      }
+    };
+
+    if (p.symmetryMode === 'Quad') {
+      splitSlab(0, 0, worldRadius, worldRadius, baseDepth + 1);
+    } else if (p.symmetryMode === 'Bilateral') {
+      splitSlab(0, -worldRadius, worldRadius, worldRadius * 2, baseDepth + 1);
+    } else {
+      splitSlab(-worldRadius, -worldRadius, worldRadius * 2, worldRadius * 2, baseDepth + 1);
+    }
+
+    // 2. Pre-calculate Elevation & High-Contrast Colors
+    const reliefFac = p.relief / 100;
+    const numCols = cols.length;
+
+    for (let i = 0; i < baseBlocks.length; i++) {
+      const b = baseBlocks[i];
+      const midX = b.gx + b.gw * 0.5;
+      const midY = b.gy + b.gh * 0.5;
+
+      const baseTerrain = noise2D((midX + seedShift) * 0.045, (midY + seedShift) * 0.045);
+      const clusterBoost = Math.pow(Math.max(0, baseTerrain), 2.4) * 2.6;
+      const jitter = ((hash(b.gx * 91 + globalSeed, b.gy * 53) - 0.5) * reliefFac);
+
+      let hVal = (baseTerrain * 0.4 + 0.3 + clusterBoost + jitter) * p.ht * zoomFac;
+
+      if (b.type === 1) {
+        const rhythmMod = (b.laneWidth >= 3 ? 18 : (b.laneWidth === 2 ? 10 : 5)) * zoomFac;
+        hVal = (hVal + (b.ribIdx % 2 === 0 ? rhythmMod : -rhythmMod * 0.6)) * (b.buildingJitter || 1.0);
+        b.baseZ = 0;
+      } else if (b.type === 2) {
+        const adjustedH = hVal * (b.terraceJitter || 1.0);
+        const tierH = Math.max(5 * zoomFac, (adjustedH * 0.5) / b.maxTiers);
+        b.baseZ = b.tierIdx * tierH;
+        hVal = (b.tierIdx + 1) * tierH;
+      } else {
+        if (b.heightMod) hVal *= b.heightMod;
+        b.baseZ = 0;
+      }
+
+      b.h = Math.max(2.5 * zoomFac, hVal);
+
+      const cellHash = Math.abs(Math.floor(hash(b.gx * 197 + globalSeed, b.gy * 283 + globalSeed) * 100000));
+      const checker = (Math.abs(Math.floor(b.gx)) ^ Math.abs(Math.floor(b.gy))) & 1 ? 1 : 0;
+      let cIdx = (cellHash + checker) % numCols;
+
+      if (b.type === 1) {
+        cIdx = (cIdx + b.ribIdx * 2 + Math.floor(b.gw + b.gh)) % numCols;
+      } else if (b.type === 2) {
+        const tierOffset = (b.tierIdx * 3) + ((b.clusterHash || 0) % numCols);
+        cIdx = (cIdx + tierOffset) % numCols;
+      }
+
+      b.col = cols[cIdx];
+      b.styleHash = cellHash;
+    }
+
+    // 3. Mirror Coordinates
+    const finalBlocks = [];
+    const sym = p.symmetryMode;
+
+    for (let i = 0; i < baseBlocks.length; i++) {
+      const b = baseBlocks[i];
+      finalBlocks.push({ gx: b.gx, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col, styleHash: b.styleHash });
+
+      if (sym === 'Bilateral') {
+        finalBlocks.push({ gx: -b.gx - b.gw, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col, styleHash: b.styleHash });
+      } else if (sym === 'Quad') {
+        finalBlocks.push({ gx: -b.gx - b.gw, gy: b.gy, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col, styleHash: b.styleHash });
+        finalBlocks.push({ gx: b.gx, gy: -b.gy - b.gh, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col, styleHash: b.styleHash });
+        finalBlocks.push({ gx: -b.gx - b.gw, gy: -b.gy - b.gh, gw: b.gw, gh: b.gh, h: b.h, baseZ: b.baseZ, col: b.col, styleHash: b.styleHash });
+      }
+    }
+
+    // 4. Depth Sorting Key
+    for (let i = 0; i < finalBlocks.length; i++) {
+      const b = finalBlocks[i];
+      const bMidX = b.gx + b.gw * 0.5;
+      const bMidY = b.gy + b.gh * 0.5;
+      const rx = bMidX * cosA - bMidY * sinA;
+      const ry = bMidX * sinA + bMidY * cosA;
+      b.depthKey = (rx + ry) + (b.baseZ * 0.001);
+    }
+
+    finalBlocks.sort((a, b) => a.depthKey - b.depthKey);
+
+    // Fast Shading Cache
+    const shadeCache = {};
+    const getShaded = (hex, factor) => {
+      const key = hex + factor;
+      if (shadeCache[key]) return shadeCache[key];
+      const num = parseInt(hex.slice(1), 16);
+      const r = Math.floor(((num >> 16) & 255) * factor);
+      const g = Math.floor(((num >> 8) & 255) * factor);
+      const b = Math.floor((num & 255) * factor);
+      const res = `rgb(${r},${g},${b})`;
+      shadeCache[key] = res;
+      return res;
+    };
+
+    const strokeColor = '#121417';
+    const outlineW = p.outlineWidth;
+    c.lineWidth = outlineW;
+    c.strokeStyle = strokeColor;
+
+    // Helper for rendering walls with optional hatching
+    const renderWall = (pAx, pAy, pBx, pBy, elevation, shadeFactor, sideType, styleHash) => {
+      c.save();
+      c.beginPath();
+      c.moveTo(pAx, pAy - elevation);
+      c.lineTo(pBx, pBy - elevation);
+      c.lineTo(pBx, pBy);
+      c.lineTo(pAx, pAy);
+      c.closePath();
+
+      if (!hasLinework) {
+        c.fillStyle = getShaded(currentCol, shadeFactor);
+        c.fill();
+        if (outlineW > 0) c.stroke();
+        c.restore();
+        return;
+      }
+
+      // Linework logic
+      const roll = (styleHash + sideType * 17) % 100;
+      let doHorizontalStripes = false;
+      let doBlackSolid = false;
+      let doVerticalMullions = false;
+
+      if (sideType === 1) {
+        if (roll < 22) doBlackSolid = true;
+        else if (roll < 88) doHorizontalStripes = true;
+        else doVerticalMullions = true;
+      } else if (sideType === 2) {
+        if (roll < 12) doBlackSolid = true;
+        else if (roll < 75) doHorizontalStripes = true;
+      } else {
+        if (roll < 55) doHorizontalStripes = true;
+      }
+
+      const wallBg = isInkOnly ? '#FFFFFF' : getShaded(currentCol, shadeFactor);
+
+      if (doBlackSolid) {
+        c.fillStyle = '#121417';
+        c.fill();
+      } else {
+        c.fillStyle = wallBg;
+        c.fill();
+        c.clip();
+
+        c.strokeStyle = '#121417';
+        c.lineWidth = Math.max(0.6, outlineW * 0.8);
+
+        if (doHorizontalStripes) {
+          const step = Math.max(2.0, p.hatchDensity * zoomFac * 0.55);
+          c.beginPath();
+          for (let z = 0; z <= elevation; z += step) {
+            c.moveTo(pAx, pAy - z);
+            c.lineTo(pBx, pBy - z);
+          }
+          c.stroke();
+        } else if (doVerticalMullions) {
+          const dx = pBx - pAx;
+          const dy = pBy - pAy;
+          const wallLen = Math.hypot(dx, dy);
+          const divisions = Math.max(1, Math.round(wallLen / (baseUnit * 0.25)));
+          c.beginPath();
+          for (let s = 1; s < divisions; s++) {
+            const t = s / divisions;
+            const lx = pAx + dx * t;
+            const ly = pAy + dy * t;
+            c.moveTo(lx, ly);
+            c.lineTo(lx, ly - elevation);
+          }
+          c.stroke();
+        }
+      }
+
+      c.restore();
+      if (outlineW > 0) {
+        c.strokeStyle = strokeColor;
+        c.lineWidth = outlineW;
+        c.beginPath();
+        c.moveTo(pAx, pAy - elevation);
+        c.lineTo(pBx, pBy - elevation);
+        c.lineTo(pBx, pBy);
+        c.lineTo(pAx, pAy);
+        c.closePath();
+        c.stroke();
+      }
+    };
+
+    let currentCol = '#FFFFFF';
+
+    // 5. Per-Face Render Loop
+    for (let i = 0; i < finalBlocks.length; i++) {
+      const b = finalBlocks[i];
+      const elevation = b.h - b.baseZ;
+      const bz = b.baseZ;
+      currentCol = b.col;
+
+      const xA = b.gx, yA = b.gy;
+      const xB = b.gx + b.gw, yB = b.gy;
+      const xC = b.gx + b.gw, yC = b.gy + b.gh;
+      const xD = b.gx, yD = b.gy + b.gh;
+
+      const rx0 = xA * cosA - yA * sinA, ry0 = xA * sinA + yA * cosA;
+      const rx1 = xB * cosA - yB * sinA, ry1 = xB * sinA + yB * cosA;
+      const rx2 = xC * cosA - yC * sinA, ry2 = xC * sinA + yC * cosA;
+      const rx3 = xD * cosA - yD * sinA, ry3 = xD * sinA + yD * cosA;
+
+      const p0x = cx + (rx0 - ry0) * halfTW, p0y = cy + (rx0 + ry0) * halfTH - bz;
+      const p1x = cx + (rx1 - ry1) * halfTW, p1y = cy + (rx1 + ry1) * halfTH - bz;
+      const p2x = cx + (rx2 - ry2) * halfTW, p2y = cy + (rx2 + ry2) * halfTH - bz;
+      const p3x = cx + (rx3 - ry3) * halfTW, p3y = cy + (rx3 + ry3) * halfTH - bz;
+
+      // Frustum Cull
+      const minY = Math.min(p0y, p1y, p2y, p3y) - elevation;
+      const maxY = Math.max(p0y, p1y, p2y, p3y);
+      const minX = Math.min(p0x, p1x, p2x, p3x);
+      const maxX = Math.max(p0x, p1x, p2x, p3x);
+
+      if (maxY < -25 || minY > h + 25 || maxX < -25 || minX > w + 25) {
+        continue;
+      }
+
+      // Extruded Walls
+      if (elevation > 0) {
+        if (p2x > p3x) renderWall(p3x, p3y, p2x, p2y, elevation, 0.72, 1, b.styleHash);
+        if (p1x > p2x) renderWall(p2x, p2y, p1x, p1y, elevation, 0.52, 2, b.styleHash);
+        if (p0x > p1x) renderWall(p1x, p1y, p0x, p0y, elevation, 0.62, 3, b.styleHash);
+        if (p3x > p0x) renderWall(p0x, p0y, p3x, p3y, elevation, 0.82, 0, b.styleHash);
+      }
+
+      // Lit Roof Slab
+      c.fillStyle = isInkOnly ? '#FFFFFF' : b.col;
+      c.beginPath();
+      c.moveTo(p0x, p0y - elevation);
+      c.lineTo(p1x, p1y - elevation);
+      c.lineTo(p2x, p2y - elevation);
+      c.lineTo(p3x, p3y - elevation);
+      c.closePath();
+      c.fill();
+      if (outlineW > 0) {
+        c.strokeStyle = strokeColor;
+        c.lineWidth = outlineW;
+        c.stroke();
+      }
+    }
+  }
+},
+      
       hexCubes: {
         name: "Hexagon Cubes", group: "Geometric",
         params: {
