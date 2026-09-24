@@ -6,6 +6,33 @@ const vm = require('node:vm');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
+test('engine catalog renames and groups every engine exactly once', () => {
+  const context = vm.createContext({});
+  vm.runInContext(`${read('js/engines.js')}\n${read('js/catalog.js')}`, context);
+  const catalog = vm.runInContext('ENGINE_CATALOG.map(([group, entries]) => [group, entries])', context);
+  const normalized = JSON.parse(JSON.stringify(catalog));
+  const groups = normalized.map(([group]) => group);
+  const entries = normalized.flatMap(([, engines]) => engines);
+
+  assert.deepEqual(groups, [
+    'Color & Composition', 'Tiles & Textiles', 'Cells & Mosaics',
+    'Nature & Terrain', 'Radial & Loop Forms', 'Flow & Particles',
+    'Waves & Optical', 'Space & Architecture', 'Texture & Fractals',
+  ]);
+  assert.equal(entries.length, 49);
+  assert.equal(new Set(entries.map(([id]) => id)).size, 49);
+  assert.deepEqual(entries.slice(0, 5), [
+    ['gradients', 'Gradients'], ['colorBands', 'Stripe Collage'],
+    ['blocks', 'Block Composition'], ['mondrian', 'Mondriaan Grid'],
+    ['bauhaus', 'Bauhaus Shapes'],
+  ]);
+  assert.deepEqual(entries.slice(-5), [
+    ['symmPixelArt', 'Pixel Tapestry'], ['halftone', 'Halftone'],
+    ['webglFractal', 'Julia Fractal'], ['clifford', 'Strange Attractor'],
+    ['glitch', 'Glitch'],
+  ]);
+});
+
 function loadCore(gl) {
   const context = vm.createContext({
     document: { getElementById: () => ({ getContext: () => ({}) }) },

@@ -10,15 +10,10 @@ const compMargin = document.getElementById("compMargin"), compZoom = document.ge
 const compRotation = document.getElementById("compRotation"), compOffsetX = document.getElementById("compOffsetX"), compOffsetY = document.getElementById("compOffsetY");
 const compGrain = document.getElementById("compGrain"), compSymmetry = document.getElementById("compSymmetry");
 
-const engineGroups = {};
-Object.entries(ENGINES).forEach(([k, e]) => {
-  if (!engineGroups[e.group]) engineGroups[e.group] = [];
-  engineGroups[e.group].push({ k, n: e.name });
-});
-Object.entries(engineGroups).forEach(([g, arr]) => {
+ENGINE_CATALOG.forEach(([group, entries]) => {
   const og = document.createElement('optgroup');
-  og.label = g;
-  arr.forEach(e => og.appendChild(new Option(e.n, e.k)));
+  og.label = group;
+  entries.forEach(([id]) => og.appendChild(new Option(ENGINES[id].name, id)));
   uiEngineSelect.appendChild(og);
 });
 

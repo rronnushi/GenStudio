@@ -1,7 +1,7 @@
 # RRON Generative Studio
 
-A static generative-art studio. https://rronnushi.github.io/GenStudio/
-No build step or package installation
+A static generative-art studio. Open `index.html` in a modern browser, or serve
+this directory with any static web server. No build step or package installation
 is required. Google Fonts and Three.js load from their existing CDNs.
 
 ## Source layout
@@ -10,6 +10,7 @@ is required. Google Fonts and Three.js load from their existing CDNs.
 - `css/studio.css`: the existing layout and visual styles.
 - `js/core.js`: palettes, shared color/random/noise helpers, and WebGL rendering.
 - `js/engines.js`: drawing engines and their parameter definitions.
+- `js/catalog.js`: display names and the explicit engine group order.
 - `js/studio.js`: controls, render scheduling/composition, and PNG export.
 
 The JavaScript files use classic scripts and share the same scope, in the order
@@ -28,6 +29,7 @@ With Node.js installed:
 node --test tests/regression.test.cjs
 node --check js/core.js
 node --check js/engines.js
+node --check js/catalog.js
 node --check js/studio.js
 ```
 
