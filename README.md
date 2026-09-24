@@ -1,7 +1,7 @@
 # RRON Generative Studio
 
-A static generative-art studio. Open `index.html` in a modern browser, or serve
-this directory with any static web server. No build step or package installation
+A static generative-art studio. https://rronnushi.github.io/GenStudio/
+No build step or package installation
 is required. Google Fonts and Three.js load from their existing CDNs.
 
 ## Source layout
