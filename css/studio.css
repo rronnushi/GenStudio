@@ -1,0 +1,356 @@
+:root {
+  --bg: #f5f5f4;
+  --fg: #1c1917;
+  --fg-muted: #78716c;
+  --border: #d6d3d1;
+  --panel-bg: #ffffff;
+  --accent: #1c1917;
+  --danger: #ef4444;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Space Grotesk', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+
+.sidebar {
+  width: 360px;
+  min-width: 360px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  height: 100%;
+}
+
+.brand {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafaf9;
+}
+
+.brand-title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.brand-sub {
+  color: var(--fg-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+
+.controls-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.section-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--fg-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  align-items: center;
+}
+
+.label-row span.val {
+  color: var(--fg);
+  font-weight: 700;
+}
+
+select, button {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  outline: none;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+select:hover, button:hover {
+  border-color: var(--fg-muted);
+  background: var(--bg);
+}
+
+.btn-primary {
+  background: var(--fg);
+  color: var(--panel-bg);
+  font-weight: 700;
+  border: 1px solid var(--fg);
+}
+
+.btn-primary:hover {
+  background: #44403c;
+  color: #fff;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  height: 16px;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  height: 12px;
+  width: 12px;
+  background: var(--accent);
+  border-radius: 50%;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -5px;
+}
+
+.palette-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.swatch-wrap {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: transform 0.15s ease;
+}
+
+.swatch-wrap:hover {
+  transform: scale(1.08);
+  z-index: 1; /* Keep the delete button above neighboring color inputs. */
+}
+
+.swatch-wrap input[type="color"] {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 50px;
+  height: 50px;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.swatch-del {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 14px;
+  height: 14px;
+  background: var(--danger);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 5;
+}
+
+.swatch-wrap:hover .swatch-del {
+  display: flex;
+}
+
+.swatch-wrap.bg-swatch {
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--fg);
+}
+
+.btn-add-color {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px dashed var(--fg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  font-size: 16px;
+  color: var(--fg-muted);
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-add-color:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+  background: rgba(0,0,0,0.03);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 30px;
+  background: var(--bg);
+}
+
+.canvas-wrapper {
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  display: flex;
+  box-shadow: 0 12px 40px -12px rgba(0,0,0,0.12);
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  max-height: calc(100dvh - 120px);
+}
+
+canvas {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100vh - 120px);
+  max-height: calc(100dvh - 120px);
+  object-fit: contain;
+}
+
+.aspect-bar {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  gap: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  padding: 6px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.aspect-btn {
+  font-size: 10px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+
+.aspect-btn.active {
+  background: var(--fg);
+  color: var(--panel-bg);
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  body {
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: 55vh;
+    height: 55dvh;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    order: 2;
+  }
+  .viewport {
+    height: 45vh;
+    height: 45dvh;
+    padding: 12px 12px 60px;
+    order: 1;
+  }
+  canvas {
+    max-height: calc(45vh - 75px);
+    max-height: calc(45dvh - 75px);
+  }
+  .aspect-bar {
+    bottom: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 92%;
+    padding: 4px;
+  }
+  .brand {
+    padding: 10px 16px;
+  }
+  .swatch-del {
+    display: flex;
+  }
+}
