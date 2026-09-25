@@ -9,6 +9,96 @@ const bgSwatchWrap = document.getElementById("bgSwatchWrap"), bgColorPicker = do
 const compMargin = document.getElementById("compMargin"), compZoom = document.getElementById("compZoom");
 const compRotation = document.getElementById("compRotation"), compOffsetX = document.getElementById("compOffsetX"), compOffsetY = document.getElementById("compOffsetY");
 const compGrain = document.getElementById("compGrain"), compSymmetry = document.getElementById("compSymmetry");
+const controlsScroll = document.querySelector('.controls-scroll');
+const settingsScrollHandle = document.getElementById('settingsScrollHandle');
+const ENGINE_DEFAULTS = Object.fromEntries(Object.entries(ENGINES).map(([id, engine]) => [
+  id, Object.fromEntries(Object.entries(engine.params).map(([key, config]) => [key, config.val])),
+]));
+
+function bindSafeMobileScrolling() {
+  let activeRangeGesture = null;
+  let activeHandleGesture = null;
+
+  const restoreRangeValue = gesture => {
+    gesture.range.value = gesture.value;
+    gesture.restoring = true;
+    gesture.range.dispatchEvent(new Event('input', { bubbles: true }));
+    gesture.restoring = false;
+  };
+
+  controlsScroll.addEventListener('pointerdown', event => {
+    const range = event.target.closest('input[type=range]');
+    if (!range || event.pointerType !== 'touch') return;
+    activeRangeGesture = {
+      pointerId: event.pointerId,
+      range,
+      value: range.value,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollTop: controlsScroll.scrollTop,
+      scrolling: false,
+      restoring: false,
+    };
+  }, true);
+
+  controlsScroll.addEventListener('pointermove', event => {
+    const gesture = activeRangeGesture;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    if (!gesture.scrolling && Math.abs(deltaY) > 8 && Math.abs(deltaY) > Math.abs(deltaX)) {
+      gesture.scrolling = true;
+      restoreRangeValue(gesture);
+    }
+    if (gesture.scrolling) {
+      restoreRangeValue(gesture);
+      controlsScroll.scrollTop = gesture.startScrollTop - deltaY;
+      event.preventDefault();
+    }
+  }, { capture: true, passive: false });
+
+  controlsScroll.addEventListener('input', event => {
+    const gesture = activeRangeGesture;
+    if (gesture && gesture.scrolling && !gesture.restoring && event.target === gesture.range) {
+      event.stopImmediatePropagation();
+      gesture.range.value = gesture.value;
+    }
+  }, true);
+
+  ['pointerup', 'pointercancel'].forEach(type => {
+    controlsScroll.addEventListener(type, event => {
+      if (activeRangeGesture?.pointerId === event.pointerId) activeRangeGesture = null;
+    }, true);
+  });
+
+  settingsScrollHandle.addEventListener('pointerdown', event => {
+    if (event.pointerType !== 'touch') return;
+    activeHandleGesture = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startScrollTop: controlsScroll.scrollTop,
+    };
+    settingsScrollHandle.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+
+  settingsScrollHandle.addEventListener('pointermove', event => {
+    const gesture = activeHandleGesture;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    controlsScroll.scrollTop = gesture.startScrollTop - (event.clientY - gesture.startY);
+    event.preventDefault();
+  }, { passive: false });
+
+  ['pointerup', 'pointercancel'].forEach(type => {
+    settingsScrollHandle.addEventListener(type, event => {
+      if (activeHandleGesture?.pointerId === event.pointerId) activeHandleGesture = null;
+    });
+  });
+}
+
+bindSafeMobileScrolling();
+const fxHalftone = document.getElementById('fxHalftone'), fxColorLevels = document.getElementById('fxColorLevels');
+const fxContrast = document.getElementById('fxContrast'), fxVignette = document.getElementById('fxVignette');
 
 ENGINE_CATALOG.forEach(([group, entries]) => {
   const og = document.createElement('optgroup');
@@ -72,7 +162,7 @@ bgColorPicker.addEventListener('input', (e) => {
 
 btnAddColor.addEventListener('click', () => {
   if (currentColors.length < 20) {
-    currentColors.push('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'));
+    currentColors.push(generateRandomPalette(1)[0]);
     renderPaletteUI();
     scheduleRender();
   }
@@ -114,6 +204,75 @@ function applyGrainPass(amount, targetCtx, w, h) {
     d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + noise));
   }
   targetCtx.putImageData(imgData, 0, 0);
+}
+
+function resetActiveEngine() {
+  const engine = ENGINES[uiEngineSelect.value];
+  Object.entries(ENGINE_DEFAULTS[uiEngineSelect.value]).forEach(([key, value]) => {
+    engine.params[key].val = value;
+  });
+  buildDynamicUI();
+  scheduleRender();
+}
+
+function randomSafeRangeValue(key, config) {
+  const span = config.max - config.min;
+  const descriptor = `${key} ${config.label}`;
+  const affectsRenderCost = /(density|detail|iteration|attempt|particle|point|vertex|node|dot|ray|stream|count|amount|segment|division|subdivision|cell|grid|step|resolution|smoothness|loop|ring|layer|petal|flower|line famil)/i.test(descriptor);
+  const low = config.min + span * 0.12;
+  const high = config.min + span * (affectsRenderCost ? 0.45 : 0.78);
+  const value = low + Math.random() * Math.max(0, high - low);
+  return span > 10 ? Math.round(value) : Math.round(value * 10) / 10;
+}
+
+function randomizeEngineSafely() {
+  const engine = ENGINES[uiEngineSelect.value];
+  Object.entries(engine.params).forEach(([key, config]) => {
+    if (config.type === 'range') config.val = randomSafeRangeValue(key, config);
+    else if (config.type === 'select') config.val = config.options[Math.floor(Math.random() * config.options.length)];
+  });
+}
+
+function clampByte(value) { return Math.max(0, Math.min(255, value)); }
+
+function applyFinishPass(targetCtx, w, h) {
+  const contrast = Number(fxContrast.value), vignette = Number(fxVignette.value) / 100;
+  const halftone = Number(fxHalftone.value) / 100;
+  const colorCount = fxColorLevels.value === '0' ? 0 : Math.max(2, Math.round(16 - Number(fxColorLevels.value) * .14));
+  if (!contrast && !vignette && !halftone && !colorCount) return;
+
+  const image = targetCtx.getImageData(0, 0, w, h), d = image.data;
+  const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+  const centerX = w / 2, centerY = h / 2, maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    let adjustment = 0;
+    if (vignette) adjustment -= Math.pow(Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2) / maxDist, 1.7) * 110 * vignette;
+    if (halftone) adjustment += (Math.sin(x * .72) * Math.sin(y * .72)) * 24 * halftone;
+    d[i] = clampByte((contrast ? contrastFactor * (d[i] - 128) + 128 : d[i]) + adjustment);
+    d[i + 1] = clampByte((contrast ? contrastFactor * (d[i + 1] - 128) + 128 : d[i + 1]) + adjustment);
+    d[i + 2] = clampByte((contrast ? contrastFactor * (d[i + 2] - 128) + 128 : d[i + 2]) + adjustment);
+  }
+  if (colorCount) {
+    // Build a compact palette from the finished image, then snap every pixel to
+    // it. This keeps the selected number meaningful without washing artwork into
+    // a generic RGB cube.
+    const bins = new Uint32Array(32768);
+    for (let i = 0; i < d.length; i += 16) bins[(d[i] >> 3 << 10) | (d[i + 1] >> 3 << 5) | (d[i + 2] >> 3)]++;
+    const palette = Array.from(bins, (count, bin) => ({ count, bin })).filter(entry => entry.count)
+      .sort((a, b) => b.count - a.count).slice(0, colorCount).map(({ bin }) => [
+        ((bin >> 10) & 31) * 8 + 4, ((bin >> 5) & 31) * 8 + 4, (bin & 31) * 8 + 4,
+      ]);
+    for (let i = 0; i < d.length; i += 4) {
+      let closest = palette[0], distance = Infinity;
+      for (const color of palette) {
+        const candidate = (d[i] - color[0]) ** 2 + (d[i + 1] - color[1]) ** 2 + (d[i + 2] - color[2]) ** 2;
+        if (candidate < distance) { distance = candidate; closest = color; }
+      }
+      d[i] = closest[0]; d[i + 1] = closest[1]; d[i + 2] = closest[2];
+    }
+  }
+  targetCtx.putImageData(image, 0, 0);
 }
 
 function applyGlobalSymmetry(symType, rCtx, tempCVS, w, h) {
@@ -173,7 +332,7 @@ function renderPipeline(targetCtx, w, h, scaleMult = 1) {
   offCanvas.height = frameH;
   const offCtx = offCanvas.getContext("2d", { willReadFrequently: true, colorSpace: "srgb" });
 
-  engine.render(offCtx, frameW, frameH, p, currentColors);
+  engine.render(offCtx, frameW, frameH, p, currentColors, scaleMult);
 
   const symCanvas = document.createElement("canvas");
   applyGlobalSymmetry(compSymmetry.value, offCtx, symCanvas, frameW, frameH);
@@ -198,6 +357,7 @@ function renderPipeline(targetCtx, w, h, scaleMult = 1) {
   targetCtx.drawImage(offCanvas, -frameW / 2, -frameH / 2, frameW, frameH);
   targetCtx.restore();
 
+  applyFinishPass(targetCtx, w, h);
   applyGrainPass(parseFloat(compGrain.value), targetCtx, w, h);
 }
 
@@ -237,7 +397,8 @@ document.getElementById('btnReorderColors').addEventListener('click', () => {
 });
 
 document.getElementById('btnRandColors').addEventListener('click', () => {
-  currentColors = generateRandomPalette();
+  currentColors = generateRandomPalette(currentColors.length);
+  bgColor = generateRandomBackground();
   presetPalette.value = "";
   renderPaletteUI();
   scheduleRender();
@@ -250,17 +411,25 @@ function updateGlobalUI() {
   document.getElementById('valOffsetX').innerText = compOffsetX.value + '%';
   document.getElementById('valOffsetY').innerText = compOffsetY.value + '%';
   document.getElementById('valGrain').innerText = compGrain.value + '%';
+  document.getElementById('valHalftone').innerText = fxHalftone.value + '%';
+  document.getElementById('valColorLevels').innerText = fxColorLevels.value === '0' ? 'Full' : `${Math.max(2, Math.round(16 - Number(fxColorLevels.value) * .14))} colors`;
+  document.getElementById('valContrast').innerText = fxContrast.value;
+  document.getElementById('valVignette').innerText = fxVignette.value + '%';
 }
 
 [compMargin, compZoom, compRotation, compOffsetX, compOffsetY, compGrain].forEach(control => {
   control.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
 });
 compSymmetry.addEventListener('change', () => { scheduleRender(); });
+[fxHalftone, fxColorLevels, fxContrast, fxVignette].forEach(control => {
+  control.addEventListener('input', () => { updateGlobalUI(); scheduleRender(); });
+});
 
 document.getElementById('btnResetGlobals').addEventListener('click', () => {
   compMargin.value = 0; compZoom.value = 100; compRotation.value = 0;
   compOffsetX.value = 0; compOffsetY.value = 0; compGrain.value = 15;
   compSymmetry.value = 'None';
+  fxHalftone.value = 0; fxColorLevels.value = 0; fxContrast.value = 0; fxVignette.value = 0;
   updateGlobalUI();
   scheduleRender();
 });
@@ -269,6 +438,8 @@ document.getElementById('paramSeed').addEventListener('input', e => {
   document.getElementById('valSeed').innerText = e.target.value;
   scheduleRender();
 });
+
+document.getElementById('btnResetEngine').addEventListener('click', resetActiveEngine);
 
 document.getElementById('btnNewSeed').addEventListener('click', () => {
   const newSeed = Math.floor(Math.random() * 99999);
@@ -280,21 +451,11 @@ document.getElementById('btnNewSeed').addEventListener('click', () => {
 document.getElementById('btnRandomize').addEventListener('click', () => {
   const keys = Object.keys(ENGINES);
   uiEngineSelect.value = keys[Math.floor(Math.random() * keys.length)];
-  if (Math.random() > 0.5) {
-    const pKeys = Object.keys(PALETTES);
-    presetPalette.value = pKeys[Math.floor(Math.random() * pKeys.length)];
-    bgColor = PALETTES[presetPalette.value][0];
-    currentColors = PALETTES[presetPalette.value].slice(1);
-  } else {
-    currentColors = generateRandomPalette();
-    presetPalette.value = "";
-  }
+  currentColors = generateRandomPalette(currentColors.length);
+  bgColor = generateRandomBackground();
+  presetPalette.value = "";
   renderPaletteUI();
-  const engine = ENGINES[uiEngineSelect.value];
-  Object.entries(engine.params).forEach(([key, conf]) => {
-    if (conf.type === 'range') conf.val = Math.floor(conf.min + Math.random() * (conf.max - conf.min + 1));
-    else if (conf.type === 'select') conf.val = conf.options[Math.floor(Math.random() * conf.options.length)];
-  });
+  randomizeEngineSafely();
   buildDynamicUI();
   const newSeed = Math.floor(Math.random() * 99999);
   document.getElementById('paramSeed').value = newSeed;

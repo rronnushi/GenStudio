@@ -70,6 +70,10 @@ body {
   scrollbar-color: var(--border) transparent;
 }
 
+.settings-scroll-handle {
+  display: none;
+}
+
 .section-title {
   font-size: 9px;
   font-weight: 700;
@@ -286,6 +290,7 @@ canvas {
   max-height: calc(100vh - 120px);
   max-height: calc(100dvh - 120px);
   object-fit: contain;
+  image-rendering: auto;
 }
 
 .aspect-bar {
@@ -350,6 +355,33 @@ canvas {
   }
   .brand {
     padding: 10px 16px;
+  }
+  .settings-scroll-handle {
+    align-items: center;
+    background: #fafaf9;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    color: var(--fg-muted);
+    display: flex;
+    font-size: 9px;
+    gap: 6px;
+    justify-content: center;
+    letter-spacing: 0.08em;
+    min-height: 34px;
+    text-transform: uppercase;
+    touch-action: none;
+  }
+  .settings-scroll-handle span {
+    color: var(--fg);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .controls-scroll {
+    overscroll-behavior: contain;
+  }
+  .controls-scroll input[type=range] {
+    touch-action: none;
   }
   .swatch-del {
     display: flex;

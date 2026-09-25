@@ -15,21 +15,20 @@ test('engine catalog renames and groups every engine exactly once', () => {
   const entries = normalized.flatMap(([, engines]) => engines);
 
   assert.deepEqual(groups, [
-    'Color & Composition', 'Tiles & Textiles', 'Cells & Mosaics',
-    'Nature & Terrain', 'Radial & Loop Forms', 'Flow & Particles',
-    'Waves & Optical', 'Space & Architecture', 'Texture & Fractals',
+    'Color & Composition', 'Patterns & Effects', 'Geometry & Symmetry',
+    'Organic & Flow', 'Fields & Systems', '3D & Architecture',
   ]);
-  assert.equal(entries.length, 49);
-  assert.equal(new Set(entries.map(([id]) => id)).size, 49);
+  assert.equal(entries.length, 51);
+  assert.equal(new Set(entries.map(([id]) => id)).size, 51);
   assert.deepEqual(entries.slice(0, 5), [
     ['gradients', 'Gradients'], ['colorBands', 'Stripe Collage'],
     ['blocks', 'Block Composition'], ['mondrian', 'Mondriaan Grid'],
     ['bauhaus', 'Bauhaus Shapes'],
   ]);
   assert.deepEqual(entries.slice(-5), [
-    ['symmPixelArt', 'Pixel Tapestry'], ['halftone', 'Halftone'],
-    ['webglFractal', 'Julia Fractal'], ['clifford', 'Strange Attractor'],
-    ['glitch', 'Glitch'],
+    ['organicThreeJS', 'Torus Knot'], ['wireTerrain', 'Wireframe Terrain'],
+    ['isoBlocks', 'Isometric Towers'], ['isometricGreeble', 'Terraced City'],
+    ['skyline', 'City Skyline'],
   ]);
 });
 
@@ -47,6 +46,14 @@ test('palette hue wraps in both directions', () => {
   assert.equal(core.hslToHex(-20, 100, 50), '#ff0055');
   assert.equal(core.hslToHex(-20, 100, 50), core.hslToHex(340, 100, 50));
   assert.equal(core.hslToHex(700, 100, 50), core.hslToHex(340, 100, 50));
+});
+
+test('random palettes retain the requested swatch count', () => {
+  const core = loadCore();
+  const palette = core.generateRandomPalette(20);
+  assert.equal(palette.length, 20);
+  assert.ok(palette.every(color => /^#[0-9a-f]{6}$/i.test(color)));
+  assert.ok(new Set(palette).size >= 16);
 });
 
 test('seeded drawing sequence remains repeatable', () => {

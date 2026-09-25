@@ -33,15 +33,29 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-function generateRandomPalette() {
-  const count = Math.floor(Math.random() * 6) + 5;
-  const baseHue = Math.floor(Math.random() * 360);
-  const newColors = [];
-  for (let i = 0; i < count; i++) {
-    const hueShift = (baseHue + (i * (360 / count)) + (Math.random() * 40 - 20)) % 360;
-    newColors.push(hslToHex(hueShift, Math.floor(Math.random() * 70 + 30), Math.floor(Math.random() * 60 + 20)));
-  }
-  return newColors;
+function generateRandomPalette(count = 6) {
+  const colorCount = Math.max(1, Math.min(20, Math.round(count)));
+  const baseHue = Math.random() * 360;
+  const schemes = [
+    i => baseHue + i * (360 / colorCount),
+    i => baseHue + (i % 3) * 120 + Math.floor(i / 3) * 18,
+    i => baseHue + (i % 2) * 180 + Math.floor(i / 2) * 24,
+    i => baseHue + i * 137.508,
+  ];
+  const hueFor = schemes[Math.floor(Math.random() * schemes.length)];
+  return Array.from({ length: colorCount }, (_, index) => {
+    const hue = hueFor(index) + (Math.random() * 18 - 9);
+    const saturation = 48 + Math.random() * 44;
+    const lightness = 30 + Math.random() * 45;
+    return hslToHex(hue, saturation, lightness);
+  });
+}
+
+function generateRandomBackground() {
+  const hue = Math.random() * 360;
+  const saturation = 8 + Math.random() * 35;
+  const lightness = Math.random() < 0.5 ? 7 + Math.random() * 13 : 84 + Math.random() * 12;
+  return hslToHex(hue, saturation, lightness);
 }
 
 let globalSeed = 1337;

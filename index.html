@@ -22,9 +22,13 @@
       <button id="btnRandomize" style="padding: 5px 10px; font-size: 9px; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;">🎲 RANDOMIZE</button>
     </div>
 
+    <button class="settings-scroll-handle" id="settingsScrollHandle" type="button" aria-label="Swipe here to scroll settings">
+      <span aria-hidden="true">↕</span> Swipe here to scroll settings
+    </button>
+
     <div class="controls-scroll">
       <div class="control-group">
-        <div class="label-row"><span>Visual Engine</span></div>
+        <div class="section-title"><span>Visual Engine</span><button id="btnResetEngine" title="Restore this engine's default settings" style="padding:2px 8px; font-size:9px;">Reset engine</button></div>
         <select id="engineSelect"></select>
       </div>
 
@@ -115,6 +119,26 @@
 
         <div class="label-row" style="margin-top: 6px;"><span>Film Texture Grain</span><span class="val" id="valGrain">15%</span></div>
         <input type="range" id="compGrain" min="0" max="100" value="15">
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title"><span>Finish &amp; Effects</span></div>
+
+        <div class="label-row"><span>Halftone Dither</span><span class="val" id="valHalftone">0%</span></div>
+        <input type="range" id="fxHalftone" min="0" max="100" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Color Levels</span></div>
+        <div class="label-row"><span>Full → 2 colors</span><span class="val" id="valColorLevels">Full</span></div>
+        <input type="range" id="fxColorLevels" min="0" max="100" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Contrast</span><span class="val" id="valContrast">0</span></div>
+        <input type="range" id="fxContrast" min="-100" max="100" value="0">
+
+        <div class="label-row"><span>Vignette</span><span class="val" id="valVignette">0%</span></div>
+        <input type="range" id="fxVignette" min="0" max="100" value="0">
+
       </div>
 
       <div class="btn-row" style="margin-top: auto; padding-top: 8px;">

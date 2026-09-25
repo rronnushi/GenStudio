@@ -5,45 +5,39 @@ const ENGINE_CATALOG = [
     ['blocks', 'Block Composition'], ['mondrian', 'Mondriaan Grid'],
     ['bauhaus', 'Bauhaus Shapes'],
   ]],
-  ['Tiles & Textiles', [
+  ['Patterns & Effects', [
     ['checkerboard', 'Checkerboard'], ['woven', 'Woven Patterns'],
     ['seamlessGeometricTiling', 'Pattern Tiles'], ['geoGrid', 'Shape Grid'],
     ['hexCubes', 'Cube Tiles'], ['truchetGrid', 'Truchet Paths'],
-    ['hexGrid', 'Hexagon Tiles'], ['circMaze', 'Maze'],
+    ['hexGrid', 'Hexagon Tiles'], ['circMaze', 'Maze'], ['waveFunctionCollapse', 'Wave Function Tiles'],
+    ['symmPixelArt', 'Pixel Tapestry'], ['halftone', 'Halftone'],
+    ['glitch', 'Glitch'],
   ]],
-  ['Cells & Mosaics', [
+  ['Geometry & Symmetry', [
     ['crystalGems', 'Crystal Facets'], ['circlePacking', 'Packed Circles'],
     ['delaunay', 'Triangle Web'], ['voronoiStained', 'Stained Glass'],
-  ]],
-  ['Nature & Terrain', [
-    ['topography', 'Topographic Map'], ['fluidMarble', 'Marbling'],
-    ['cellular', 'Organic Blooms'], ['perlinContours', 'Contour Lines'],
-    ['waves', 'Layered Waves'], ['superformula', 'Geometric Flowers'],
-  ]],
-  ['Radial & Loop Forms', [
     ['mandalaPrecision', 'Coil Mandala'],
     ['concentricPolygons', 'Nested Polygons'], ['kaleidoscope', 'Kaleidoscope'],
     ['spirograph', 'Spirograph'], ['radialBurst', 'Radial Burst'],
-    ['harmonograph', 'Harmonograph'], ['lissajous', 'Lissajous Loops'],
+    ['harmonograph', 'Harmonograph'], ['lissajous', 'Lissajous Loops'], ['guilloche', 'Guilloché Engraving'],
   ]],
-  ['Flow & Particles', [
+  ['Organic & Flow', [
+    ['topography', 'Topographic Map'], ['fluidMarble', 'Marbling'],
+    ['cellular', 'Organic Blooms'], ['perlinContours', 'Contour Lines'],
+    ['waves', 'Layered Waves'], ['superformula', 'Geometric Flowers'],
     ['unifiedFlow', 'Flow Lines'], ['flowField', 'Flow Particles'],
-    ['vortexBlocks', 'Block Flow'], ['constellation', 'Constellations'],
+    ['vortexBlocks', 'Block Flow'],
   ]],
-  ['Waves & Optical', [
+  ['Fields & Systems', [
     ['opArt', 'Op Art'], ['polarPoints', 'Wave Dots'],
     ['chladni', 'Vibration Patterns'], ['sineOscillator', 'Sine Waves'],
-    ['quantumInterference', 'Ripple Interference'],
+    ['quantumInterference', 'Ripple Interference'], ['webglFractal', 'Julia Fractal'],
+    ['clifford', 'Strange Attractor'], ['constellation', 'Constellations'],
   ]],
-  ['Space & Architecture', [
+  ['3D & Architecture', [
     ['organicThreeJS', 'Torus Knot'], ['wireTerrain', 'Wireframe Terrain'],
     ['isoBlocks', 'Isometric Towers'], ['isometricGreeble', 'Terraced City'],
     ['skyline', 'City Skyline'],
-  ]],
-  ['Texture & Fractals', [
-    ['symmPixelArt', 'Pixel Tapestry'], ['halftone', 'Halftone'],
-    ['webglFractal', 'Julia Fractal'], ['clifford', 'Strange Attractor'],
-    ['glitch', 'Glitch'],
   ]],
 ];
 

@@ -2,23 +2,75 @@ const ENGINES = {
   gradients: {
     name: "Color Gradients", group: "Foundations",
     params: {
-      style: { type: 'select', options: ['Linear', 'Radial', 'Conic'], val: 'Linear', label: "Style" },
+      style: { type: 'select', options: ['Linear', 'Radial', 'Conic', 'Aurora', 'Liquid', 'Corner Blend'], val: 'Linear', label: "Style" },
+      spread: { type: 'range', min: 1, max: 300, val: 25, label: "Color Spread" },
+      softness: { type: 'range', min: 0, max: 100, val: 75, label: "Softness" },
       angle: { type: 'range', min: 0, max: 360, val: 45, label: "Angle" },
       steps: { type: 'range', min: 2, max: 255, val: 255, label: "Color Bands" }
     },
-    render: (c, w, h, p, cols) => {
+    render: (c, w, h, p, cols, outputScale = 1) => {
       const seedAngleShift = (random() * 360);
       const effectiveAngle = (p.angle + seedAngleShift) * Math.PI / 180;
       const cx = w / 2, cy = h / 2, d = Math.hypot(w, h);
+      const hexToRGB = hex => {
+        const num = parseInt(hex.slice(1), 16);
+        return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+      };
+      const palette = [bgColor, ...cols], paletteRGB = palette.map(hexToRGB);
+      const softness = p.softness / 100;
+      const repeats = 1 + Math.floor(p.spread / 22);
+      const addStops = gradient => {
+        const segments = repeats * (palette.length - 1);
+        for (let i = 0; i < segments; i++) {
+          const start = i / segments, end = (i + 1) / segments, span = end - start;
+          const from = palette[i % (palette.length - 1)], to = palette[(i % (palette.length - 1)) + 1];
+          gradient.addColorStop(start, from);
+          gradient.addColorStop(start + span * (0.5 - softness / 2), from);
+          gradient.addColorStop(start + span * (0.5 + softness / 2), to);
+          gradient.addColorStop(end, to);
+        }
+      };
 
-      let g = p.style === 'Linear' 
-        ? c.createLinearGradient(cx - Math.cos(effectiveAngle)*d/2, cy - Math.sin(effectiveAngle)*d/2, cx + Math.cos(effectiveAngle)*d/2, cy + Math.sin(effectiveAngle)*d/2) 
-        : (p.style === 'Radial' ? c.createRadialGradient(cx, cy, 0, cx, cy, d / 1.5) : c.createConicGradient(effectiveAngle, cx, cy));
-
-      const seedOrderedCols = [bgColor, ...cols].map((cl, i) => ({ cl, sort: hash(i, 42) })).sort((a,b) => a.sort - b.sort).map(o => o.cl);
-      seedOrderedCols.forEach((col, i, arr) => g.addColorStop(i / (arr.length - 1 || 1), col));
-
-      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      if (p.style === 'Aurora') {
+        c.fillStyle = palette[0]; c.fillRect(0, 0, w, h);
+        const blooms = 3 + Math.floor(p.spread / 13);
+        for (let i = 0; i < blooms; i++) {
+          const x = randomRange(-w * 0.1, w * 1.1), y = randomRange(-h * 0.05, h * 1.05);
+          const radius = randomRange(d * 0.18, d * (0.28 + softness * 0.16));
+          const gradient = c.createRadialGradient(x, y, 0, x, y, radius);
+          const color = palette[(i + 1) % palette.length];
+          const hold = 0.42 + softness * 0.08, fadeEnd = Math.min(1, hold + 0.025 + softness * 0.45);
+          gradient.addColorStop(0, color);
+          gradient.addColorStop(hold, color);
+          gradient.addColorStop(fadeEnd, color + '00');
+          gradient.addColorStop(1, color + '00');
+          c.globalAlpha = 0.42 + softness * 0.32; c.fillStyle = gradient; c.fillRect(0, 0, w, h);
+        }
+        c.globalAlpha = 1;
+      } else if (p.style === 'Liquid' || p.style === 'Corner Blend') {
+        const vec = rgb => `vec3(${(rgb[0] / 255).toFixed(6)},${(rgb[1] / 255).toFixed(6)},${(rgb[2] / 255).toFixed(6)})`;
+        const paletteCases = paletteRGB.slice(0, -1).map((rgb, index) =>
+          `if(pos<=${index + 1}.0)return mix(${vec(rgb)},${vec(paletteRGB[index + 1])},softStep(pos-${index}.0));`
+        ).join('');
+        const corners = [0, 1, 2, 3].map(index => vec(paletteRGB[index % paletteRGB.length]));
+        const fs = `precision highp float;
+          uniform vec2 res; uniform float angle, soft, repeatCount, seed, mode;
+          float rand(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7))+seed*0.013)*43758.5453123);}
+          float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(rand(i),rand(i+vec2(1.0,0.0)),f.x),mix(rand(i+vec2(0.0,1.0)),rand(i+vec2(1.0,1.0)),f.x),f.y);}
+          float softStep(float v){if(soft<0.001)return step(0.5,v);float e=clamp((v-(0.5-soft*0.5))/soft,0.0,1.0);return e*e*(3.0-2.0*e);}
+          vec3 palette(float value){float scaled=clamp(value,0.0,1.0)*repeatCount;float local=fract(scaled);if(value>0.99999)local=1.0;float pos=local*${Math.max(1, paletteRGB.length - 1)}.0;${paletteCases}return ${vec(paletteRGB[paletteRGB.length - 1])};}
+          void main(){vec2 uv=gl_FragCoord.xy/res;
+            if(mode>0.5){float bu=softStep(uv.x),bv=softStep(uv.y);vec3 top=mix(${corners[0]},${corners[1]},bu);vec3 bottom=mix(${corners[2]},${corners[3]},bu);gl_FragColor=vec4(mix(top,bottom,bv),1.0);return;}
+            float projected=dot(uv-0.5,vec2(cos(angle),sin(angle)))+0.5;
+            float coarse=noise(uv*2.3+vec2(seed*0.001,0.0));float fine=noise(uv*7.5+vec2(0.0,seed*0.001));
+            gl_FragColor=vec4(palette(clamp(projected+(coarse-0.5)*0.7+(fine-0.5)*0.16,0.0,1.0)),1.0);}`;
+        runShader(c, w, h, fs, { angle: effectiveAngle, soft: softness, repeatCount: repeats, seed: globalSeed, mode: p.style === 'Corner Blend' ? 1 : 0 });
+      } else {
+        const gradient = p.style === 'Linear'
+          ? c.createLinearGradient(cx - Math.cos(effectiveAngle) * d / 2, cy - Math.sin(effectiveAngle) * d / 2, cx + Math.cos(effectiveAngle) * d / 2, cy + Math.sin(effectiveAngle) * d / 2)
+          : (p.style === 'Radial' ? c.createRadialGradient(cx, cy, 0, cx, cy, d / 1.5) : c.createConicGradient(effectiveAngle, cx, cy));
+        addStops(gradient); c.fillStyle = gradient; c.fillRect(0, 0, w, h);
+      }
       if (p.steps < 255) {
         const img = c.getImageData(0, 0, w, h), dt = img.data, f = 255 / p.steps;
         for (let i = 0; i < dt.length; i += 4) {
@@ -1456,9 +1508,14 @@ isoBlocks: {
     name: "Isometric City", group: "Geometric",
     params: {
       g: { type: 'range', min: 4, max: 60, val: 18, label: "City Grid Size" },
-      ht: { type: 'range', min: 0, max: 1000, val: 120, label: "Tower Height" },
-      t: { type: 'range', min: 10, max: 90, val: 50, label: "Perspective Tilt" },
+      ht: { type: 'range', min: 0, max: 2400, val: 180, label: "Tower Height" },
       gp: { type: 'range', min: 0, max: 80, val: 10, label: "Street Gap %" },
+      dn: { type: 'range', min: 5, max: 100, val: 72, label: "Building Density %" },
+      cl: { type: 'range', min: 0, max: 100, val: 55, label: "Cluster Strength %" },
+      vr: { type: 'range', min: 0, max: 100, val: 70, label: "Height Variation %" },
+      sky: { type: 'select', options: ['clustered peaks', 'random skyline', 'terraced skyline', 'needle spires'], val: 'clustered peaks', label: "Skyline Style" },
+      roof: { type: 'select', options: ['flat roofs', 'stepped roofs', 'spire roofs', 'mixed roofs'], val: 'mixed roofs', label: "Roof Style" },
+      cv: { type: 'range', min: 0, max: 100, val: 65, label: "Facet Color Variation %" },
       win: { type: 'range', min: 0, max: 100, val: 20, label: "Windows %" },
       outlineWidth: { type: 'range', min: 0, max: 50, val: 1, label: "Outline Width" }
     },
@@ -1469,33 +1526,49 @@ isoBlocks: {
 
       const grid = Math.max(4, Math.floor(p.g));
       const tw = Math.min(w, h) / grid;
-      const th = tw * (p.t / 100);
+      const th = tw * 0.52;
 
       const gapScale = Math.min(0.85, (p.gp / 100));
       const ww = Math.max(2, tw * (1 - gapScale));
       const hh = Math.max(1, th * (1 - gapScale));
 
       const ox = w / 2;
-      const oy = h * 0.88;
+      // The nearest tower footprint meets the lower canvas edge exactly.
+      // Everything else recedes upward from that base line.
+      const oy = h - hh / 2;
       const seedShift = globalSeed % 50;
 
-      for (let d = 0; d <= (grid - 1) * 2; d++) {
+      // Back-to-front painter ordering keeps nearby tower bases in front of the city,
+      // rather than allowing a distant roof to form a flat overlay plane.
+      for (let d = (grid - 1) * 2; d >= 0; d--) {
         const minR = Math.max(0, d - (grid - 1));
         const maxR = Math.min(grid - 1, d);
 
         for (let r = minR; r <= maxR; r++) {
           const l = d - r;
 
-          // Tower height: smooth low-frequency terrain noise
-          const n = noise2D(r * 0.15 + seedShift, l * 0.15 + seedShift);
-          const towerHeight = Math.abs(n) * p.ht * 4.5 + 8;
+          const n = Math.abs(noise2D(r * 0.15 + seedShift, l * 0.15 + seedShift));
+          const cluster = (noise2D(r * 0.075 + seedShift * 2, l * 0.075 + seedShift * 2) + 1) / 2;
+          const occupancy = p.dn / 100 * (1 - p.cl / 100 * 0.55 + cluster * p.cl / 100 * 0.55);
+          const cellHash = Math.abs(Math.floor(hash(r * 197 + globalSeed, l * 283 + globalSeed) * 100000));
+          if ((cellHash % 1000) / 1000 > occupancy) continue;
+
+          let heightField = p.sky === 'random skyline' ? (cellHash % 1000) / 1000 : n;
+          if (p.sky === 'terraced skyline') heightField = Math.round(heightField * 5) / 5;
+          if (p.sky === 'needle spires') heightField = Math.pow(heightField, 0.42);
+          let towerHeight = 8 + p.ht * (0.2 + heightField * (p.vr / 100) * 3.4);
+          if (p.sky === 'needle spires' && cellHash % 11 === 0) towerHeight *= 1.75;
 
           // Color assignment: high-frequency spatial hash breaks spatial clumps
           // Alternate odd/even checker steps prevent adjacent twins
-          const cellHash = Math.abs(Math.floor(hash(r * 197 + globalSeed, l * 283 + globalSeed) * 100000));
           const checkerOffset = (r ^ l) & 1 ? 1 : 0;
           const colorIdx = (cellHash + checkerOffset) % cols.length;
           const baseCol = cols[colorIdx];
+          const facetShift = cellHash % Math.max(1, cols.length - 1) + 1;
+          const varied = (offset, fallback) => (cellHash + offset * 41) % 100 < p.cv ? cols[(colorIdx + facetShift * offset) % cols.length] : fallback;
+          const leftCol = baseCol;
+          const rightCol = varied(1, baseCol);
+          const roofCol = varied(2, rightCol);
 
           const ix = ox + (l - r) * (tw / 2);
           const iy = oy - (l + r) * (th / 2);
@@ -1504,8 +1577,8 @@ isoBlocks: {
           c.strokeStyle = p.outlineWidth > 0 ? bgColor : baseCol;
 
           // 1. Left Wall (Shadowed)
-          c.globalAlpha = 0.55;
-          c.fillStyle = baseCol;
+          c.globalAlpha = 0.78;
+          c.fillStyle = leftCol;
           c.beginPath();
           c.moveTo(ix, iy - towerHeight);
           c.lineTo(ix - ww / 2, iy + hh / 2 - towerHeight);
@@ -1516,7 +1589,8 @@ isoBlocks: {
           if (p.outlineWidth > 0) c.stroke();
 
           // 2. Right Wall (Mid-tone)
-          c.globalAlpha = 0.75;
+          c.globalAlpha = 0.9;
+          c.fillStyle = rightCol;
           c.beginPath();
           c.moveTo(ix, iy - towerHeight);
           c.lineTo(ix + ww / 2, iy + hh / 2 - towerHeight);
@@ -1528,6 +1602,7 @@ isoBlocks: {
 
           // 3. Roof Top (Direct Light)
           c.globalAlpha = 1.0;
+          c.fillStyle = roofCol;
           c.beginPath();
           c.moveTo(ix, iy - towerHeight);
           c.lineTo(ix + ww / 2, iy + hh / 2 - towerHeight);
@@ -1536,6 +1611,18 @@ isoBlocks: {
           c.closePath();
           c.fill();
           if (p.outlineWidth > 0) c.stroke();
+
+          const roofHash = (cellHash >> 3) % 100;
+          const useSpire = p.roof === 'spire roofs' || (p.roof === 'mixed roofs' && roofHash < 34);
+          const useStep = p.roof === 'stepped roofs' || (p.roof === 'mixed roofs' && roofHash >= 34 && roofHash < 67);
+          if (useSpire && towerHeight > 18) {
+            const peak = Math.min(towerHeight * 0.25, tw * 1.3);
+            c.fillStyle = roofCol; c.beginPath(); c.moveTo(ix, iy - towerHeight - peak); c.lineTo(ix + ww * 0.26, iy + hh * 0.26 - towerHeight); c.lineTo(ix, iy + hh * 0.52 - towerHeight); c.closePath(); c.fill();
+            c.fillStyle = rightCol; c.beginPath(); c.moveTo(ix, iy - towerHeight - peak); c.lineTo(ix, iy + hh * 0.52 - towerHeight); c.lineTo(ix - ww * 0.26, iy + hh * 0.26 - towerHeight); c.closePath(); c.fill();
+          } else if (useStep && towerHeight > 20) {
+            const inset = ww * 0.22, rise = Math.min(towerHeight * 0.16, tw * 0.42);
+            c.fillStyle = roofCol; c.beginPath(); c.moveTo(ix, iy - towerHeight - rise); c.lineTo(ix + ww / 2 - inset, iy + hh / 2 - towerHeight); c.lineTo(ix, iy + hh - towerHeight + rise * 0.05); c.lineTo(ix - ww / 2 + inset, iy + hh / 2 - towerHeight); c.closePath(); c.fill();
+          }
 
           // 4. Windows
           if (p.win > 0 && towerHeight > 24 && ww > 8) {
@@ -2388,7 +2475,12 @@ for (let i = 0; i < finalBlocks.length; i++) {
     render: (c, w, h, p, cols) => {
       c.fillStyle = bgColor; c.fillRect(0, 0, w, h); const pts = [];
       for (let i = 0; i < p.n; i++) pts.push({ x: random() * w, y: random() * h });
-      c.lineWidth = p.outlineWidth; c.strokeStyle = cols[0];
+      c.lineWidth = p.outlineWidth;
+      c.strokeStyle = cols[0];
+      // Acute triangles create unbounded miter spikes when a wide outline is
+      // applied. A bevel gives every corner a finite, intentional edge.
+      c.lineJoin = 'bevel';
+      c.miterLimit = 2;
       for (let i = 0; i < p.n; i++) {
         for (let j = i + 1; j < p.n; j++) {
           for (let k = j + 1; k < p.n; k++) {
@@ -3483,6 +3575,85 @@ voronoiStained: {
         }
       }
       c.globalAlpha = 1.0;
+    }
+  },
+
+  guilloche: {
+    name: "Guilloché Engraving", group: "Radial & Loop Forms",
+    params: {
+      petals: { type: 'range', min: 2, max: 36, val: 11, label: "Petal Ratio" },
+      rings: { type: 'range', min: 1, max: 30, val: 8, label: "Line Families" },
+      offset: { type: 'range', min: 5, max: 100, val: 48, label: "Pen Offset" },
+      coverage: { type: 'range', min: 25, max: 180, val: 100, label: "Canvas Coverage" },
+      turns: { type: 'range', min: 2, max: 24, val: 8, label: "Curve Turns" },
+      lineWeight: { type: 'range', min: 0.1, max: 8, val: 0.7, label: "Line Weight" }
+    },
+    render: (c, w, h, p, cols, outputScale = 1) => {
+      c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+      // Coverage is based on the long edge, so one rosette can deliberately fill a story canvas.
+      const base = Math.max(w, h) * p.coverage / 220;
+      c.lineWidth = p.lineWeight * outputScale;
+      c.lineJoin = 'round';
+      for (let ring = 0; ring < p.rings; ring++) {
+        const R = base * (0.4 + (ring + 1) / p.rings * 0.75);
+        const r = Math.max(3, R / p.petals);
+        const d = R * (p.offset / 100);
+        const phase = randomRange(0, Math.PI * 2);
+        c.strokeStyle = cols[ring % cols.length];
+        c.globalAlpha = 0.45 + (ring % 3) * 0.15;
+        c.beginPath();
+        const steps = Math.max(1200, Math.ceil(p.turns * Math.max(w, h) * 0.9));
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps * Math.PI * 2 * p.turns + phase;
+          const x = (R - r) * Math.cos(t) + d * Math.cos((R - r) / r * t);
+          const y = (R - r) * Math.sin(t) - d * Math.sin((R - r) / r * t);
+          if (i === 0) c.moveTo(w / 2 + x, h / 2 + y); else c.lineTo(w / 2 + x, h / 2 + y);
+        }
+        c.stroke();
+      }
+      c.globalAlpha = 1;
+    }
+  },
+
+  waveFunctionCollapse: {
+    name: "Wave Function Tiles", group: "Tiles & Textiles",
+    params: {
+      tileSet: { type: 'select', options: ['Interlocking Paths', 'Diagonal Quilt'], val: 'Interlocking Paths', label: "Tile Set" },
+      grid: { type: 'range', min: 4, max: 40, val: 15, label: "Grid Size" },
+      rotation: { type: 'select', options: ['Locked', 'Rotatable'], val: 'Rotatable', label: "Rotation" },
+      gap: { type: 'range', min: 0, max: 20, val: 2, label: "Tile Gap" },
+      lineWeight: { type: 'range', min: 0.1, max: 12, val: 2, label: "Line Weight" }
+    },
+    render: (c, w, h, p, cols, outputScale = 1) => {
+      c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+      const columns = Math.round(p.grid), cell = w / columns, rows = Math.max(1, Math.round(h / cell));
+      const n = columns, ox = 0, oy = (h - cell * rows) / 2, gap = p.gap * outputScale;
+      // A bounded, deterministic path-tile solver: each edge either continues a path or remains empty.
+      const sourceTiles = p.tileSet === 'Interlocking Paths' ? [[1,0,1,0],[0,1,0,1],[1,1,0,0],[1,1,1,1],[0,0,0,0]] : [[1,1,0,0],[1,0,1,0],[1,1,1,1],[0,0,0,0]];
+      const tiles = sourceTiles.flatMap(tile => {
+        if (p.rotation === 'Locked') return [tile];
+        const rotations = [], candidate = tile.slice();
+        for (let turn = 0; turn < 4; turn++) { rotations.push(candidate.slice()); candidate.unshift(candidate.pop()); }
+        return rotations;
+      });
+      const grid = Array.from({ length: rows }, () => Array(n).fill(null));
+      for (let y = 0; y < rows; y++) for (let x = 0; x < n; x++) {
+        const top = y ? grid[y - 1][x][2] : 0, left = x ? grid[y][x - 1][1] : 0;
+        let choices = tiles.filter(t => t[0] === top && t[3] === left);
+        if (!choices.length) choices = tiles;
+        const tile = choices[Math.floor(random() * choices.length)].slice();
+        grid[y][x] = tile;
+      }
+      c.lineWidth = p.lineWeight * outputScale; c.lineCap = 'round'; c.lineJoin = 'round';
+      for (let y = 0; y < rows; y++) for (let x = 0; x < n; x++) {
+        const tile = grid[y][x], px = ox + x * cell + gap / 2, py = oy + y * cell + gap / 2, s = cell - gap;
+        c.fillStyle = cols[(x + y) % cols.length]; c.globalAlpha = 0.18; c.fillRect(px, py, s, s); c.globalAlpha = 1;
+        c.strokeStyle = cols[(x * 3 + y) % cols.length]; c.beginPath();
+        const midX = px + s / 2, midY = py + s / 2;
+        if (p.tileSet === 'Diagonal Quilt') { if (tile[0] || tile[2]) { c.moveTo(px, py); c.lineTo(px + s, py + s); } if (tile[1] || tile[3]) { c.moveTo(px + s, py); c.lineTo(px, py + s); } }
+        else { if (tile[0]) { c.moveTo(midX, midY); c.lineTo(midX, py); } if (tile[1]) { c.moveTo(midX, midY); c.lineTo(px + s, midY); } if (tile[2]) { c.moveTo(midX, midY); c.lineTo(midX, py + s); } if (tile[3]) { c.moveTo(midX, midY); c.lineTo(px, midY); } }
+        c.stroke();
+      }
     }
   }
 };
