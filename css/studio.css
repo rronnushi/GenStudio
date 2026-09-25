@@ -188,6 +188,7 @@ input[type=range]::-webkit-slider-thumb {
   z-index: 1; /* Keep the delete button above neighboring color inputs. */
 }
 
+
 .swatch-wrap input[type="color"] {
   position: absolute;
   top: -10px;

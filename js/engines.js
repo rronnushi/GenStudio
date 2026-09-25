@@ -622,7 +622,7 @@ mandalaPrecision: {
       outlineWidth: { type: 'range', min: 0, max: 50, val: 1, label: "Outline Width" }
     },
     render: (c, w, h, p, cols) => {
-      c.fillStyle = bgColor; c.fillRect(0, 0, w, h);
+      c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'bevel';
       const s = p.sc, d = p.dist / 100, cw = Math.ceil(w / s) + 2, ch = Math.ceil(h / s) + 2, pts = [];
       for (let y = -1; y <= ch; y++) {
         let r = [];
@@ -659,7 +659,7 @@ mandalaPrecision: {
       const colsCount = Math.ceil(w / s) + 2;
       const rowsCount = Math.ceil(h / s) + 2;
       c.lineWidth = p.t;
-      c.lineJoin = 'miter';
+      c.lineJoin = 'bevel';
       const seedOffset = Math.floor(random() * 20);
 
       for (let gy = -1; gy < rowsCount; gy++) {
@@ -849,7 +849,7 @@ seamlessGeometricTiling: {
         : (cols.length ? [...cols] : ['#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6']);
 
       c.lineCap = 'round';
-      c.lineJoin = 'miter';
+      c.lineJoin = 'round';
       c.globalAlpha = Math.max(0.01, 1 - (p.transparency / 100));
 
       const angleDeg = parseFloat(p.angle) || 0;
@@ -1396,14 +1396,14 @@ seamlessGeometricTiling: {
         for (let x = 0; x < colsNum; x++) {
           let px = x * s, py = y * s, ts = s;
           let cIdxFill = Math.abs(Math.floor(hash(x + globalSeed, y + globalSeed) * 1000)) % cols.length;
-          c.fillStyle = cols[cIdxFill]; c.strokeStyle = p.outlineWidth > 0 ? bgColor : 'transparent'; c.lineWidth = p.outlineWidth;
+          c.fillStyle = cols[cIdxFill]; c.strokeStyle = p.outlineWidth > 0 ? bgColor : 'transparent'; c.lineWidth = p.outlineWidth; c.lineJoin = 'bevel';
           let t = (Math.abs(Math.floor(hash(x + 1 + globalSeed, y + 1 + globalSeed) * 100))) % 4;
           if (p.sh === 'squares') t = 0; if (p.sh === 'circles') t = 1; if (p.sh === 'mixed') t = t % 2;
           c.beginPath();
           if (t === 0) c.rect(px, py, ts, ts);
           else if (t === 1) c.arc(px + ts / 2, py + ts / 2, ts / 2, 0, Math.PI * 2);
-          else if (t === 2) { c.moveTo(px, py + ts); c.lineTo(px + ts / 2, py); c.lineTo(px + ts, py + ts); }
-          else { c.moveTo(px + ts / 2, py + ts / 2); c.arc(px + ts / 2, py + ts / 2, ts / 2, 0, Math.PI); }
+          else if (t === 2) { c.moveTo(px, py + ts); c.lineTo(px + ts / 2, py); c.lineTo(px + ts, py + ts); c.closePath(); }
+          else { c.moveTo(px + ts / 2, py + ts / 2); c.arc(px + ts / 2, py + ts / 2, ts / 2, 0, Math.PI); c.closePath(); }
           c.fill(); if (p.outlineWidth > 0) c.stroke();
         }
       }
@@ -1583,7 +1583,7 @@ const hasLinework = p.renderStyle === 'Architectural Linework' || p.renderStyle 
 
 c.fillStyle = isInkOnly ? '#F5F5F3' : bgColor;
 c.fillRect(0, 0, w, h);
-c.lineJoin = 'miter';
+c.lineJoin = 'bevel';
 
 const diag = Math.hypot(w, h);
 const blocksAcross = Math.max(6, Math.floor(p.density));
@@ -2033,19 +2033,31 @@ for (let i = 0; i < finalBlocks.length; i++) {
     },
     render: (c, w, h, p, cols) => {
       const r = p.sc, hw = Math.sqrt(3) * r, hh = 2 * r;
-      c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'round';
+      c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.lineJoin = 'bevel'; c.lineCap = 'butt'; c.miterLimit = 2;
+      const drawFace = (points, fill, stroke = false) => {
+        c.beginPath();
+        c.moveTo(points[0][0], points[0][1]);
+        points.slice(1).forEach(([x, y]) => c.lineTo(x, y));
+        c.closePath();
+        if (stroke) c.stroke(); else { c.fillStyle = fill; c.fill(); }
+      };
       for (let y = -hh; y < h + hh; y += hh * 0.75) {
         for (let x = -hw; x < w + hw; x += hw) {
           let cx = x;
           if (Math.round(y / (hh * 0.75)) % 2 !== 0) cx += hw / 2;
-          let sw = hw * (p.fs / 100) - p.gp, sr = r * (p.fs / 100) - p.gp / 2;
-          c.lineWidth = Math.max(1, p.st);
-          c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
-          c.beginPath(); c.moveTo(cx, y); c.lineTo(cx + sw / 2, y - sr / 2); c.lineTo(cx, y - sr); c.lineTo(cx - sw / 2, y - sr / 2); c.fill(); if (p.st > 0) c.stroke();
-          c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
-          c.beginPath(); c.moveTo(cx, y); c.lineTo(cx - sw / 2, y - sr / 2); c.lineTo(cx - sw / 2, y + sr / 2); c.lineTo(cx, y + sr); c.fill(); if (p.st > 0) c.stroke();
-          c.fillStyle = pick(cols); c.strokeStyle = p.st > 0 ? bgColor : c.fillStyle;
-          c.beginPath(); c.moveTo(cx, y); c.lineTo(cx + sw / 2, y - sr / 2); c.lineTo(cx + sw / 2, y + sr / 2); c.lineTo(cx, y + sr); c.fill(); if (p.st > 0) c.stroke();
+          const sw = hw * (p.fs / 100) - p.gp, sr = r * (p.fs / 100) - p.gp / 2;
+          if (sw <= 0 || sr <= 0) continue;
+          const faces = [
+            { points: [[cx, y], [cx + sw / 2, y - sr / 2], [cx, y - sr], [cx - sw / 2, y - sr / 2]], fill: pick(cols) },
+            { points: [[cx, y], [cx - sw / 2, y - sr / 2], [cx - sw / 2, y + sr / 2], [cx, y + sr]], fill: pick(cols) },
+            { points: [[cx, y], [cx + sw / 2, y - sr / 2], [cx + sw / 2, y + sr / 2], [cx, y + sr]], fill: pick(cols) },
+          ];
+          faces.forEach(face => drawFace(face.points, face.fill));
+          if (p.st > 0) {
+            c.strokeStyle = bgColor;
+            c.lineWidth = Math.min(p.st, Math.min(sw, sr) * 0.5);
+            faces.forEach(face => drawFace(face.points, face.fill, true));
+          }
         }
       }
     }
@@ -2113,23 +2125,253 @@ for (let i = 0; i < finalBlocks.length; i++) {
   bauhaus: {
     name: "Bauhaus Studio", group: "Geometric",
     params: {
-      n: { type: 'range', min: 5, max: 100, val: 30, label: "Shape Count" },
-      sc: { type: 'range', min: 10, max: 300, val: 100, label: "Scale" },
-      md: { type: 'select', options: ['mixed', 'circles', 'squares'], val: 'mixed', label: "Primary Motif" },
+      sc: { type: 'range', min: 20, max: 1600, val: 96, label: "Tile Size" },
+      gp: { type: 'range', min: 0, max: 24, val: 5, label: "Tile Gap" },
+      ly: { type: 'select', options: ['tile grid', 'centered 1:1'], val: 'tile grid', label: "Composition Layout" },
+      cs: { type: 'range', min: 20, max: 100, val: 82, label: "Centered Canvas %" },
       opacity: { type: 'range', min: 10, max: 100, val: 100, label: "Opacity %" },
       outlineWidth: { type: 'range', min: 0, max: 50, val: 0, label: "Outline Width" }
     },
     render: (c, w, h, p, cols) => {
-      c.fillStyle = bgColor; c.fillRect(0, 0, w, h); c.globalAlpha = p.opacity / 100;
-      c.lineWidth = p.outlineWidth;
-      c.strokeStyle = bgColor;
-      for (let i = 0; i < p.n; i++) {
-        let x = random() * w, y = random() * h, s = p.sc * randomRange(0.2, 1.5);
-        let t = p.md === 'mixed' ? Math.floor(random() * 3) : (p.md === 'circles' ? Math.floor(random() * 2) : 2);
-        c.fillStyle = pick(cols); c.beginPath();
-        if (t === 0) { c.arc(x, y, s / 2, 0, Math.PI * 2); c.fill(); if (p.outlineWidth > 0) c.stroke(); }
-        else if (t === 1) { c.arc(x, y, s / 2, 0, Math.PI); c.fill(); if (p.outlineWidth > 0) c.stroke(); }
-        else { c.fillRect(x, y, s, s / 2); if (p.outlineWidth > 0) c.strokeRect(x, y, s, s / 2); }
+      // This is deliberately a tiled composition: each cell is a small poster,
+      // rather than a set of independently scattered shapes.
+      c.fillStyle = bgColor;
+      c.fillRect(0, 0, w, h);
+      const isCentered = p.ly === 'centered 1:1';
+      // Grid tiles are never allowed to spill past the canvas. The unused edge
+      // space deliberately remains the background, instead of showing cropped cells.
+      const tile = isCentered
+        ? Math.min(w, h) * p.cs / 100
+        : Math.min(Math.max(20, p.sc), Math.min(w, h));
+      const gap = Math.min(tile * 0.28, p.gp);
+      const gridColumns = isCentered ? 1 : Math.max(1, Math.floor(w / tile));
+      const gridRows = isCentered ? 1 : Math.max(1, Math.floor(h / tile));
+      const startX = (w - gridColumns * tile) / 2;
+      const startY = (h - gridRows * tile) / 2;
+      const family = Array.from({ length: 32 }, (_, index) => index);
+      const color = (offset = 0) => cols[(Math.floor(random() * cols.length) + offset) % cols.length] || '#1a1a1a';
+
+      const disc = (x, y, r, fill, start = 0, end = Math.PI * 2) => {
+        c.fillStyle = fill; c.beginPath(); c.moveTo(x, y); c.arc(x, y, r, start, end); c.closePath(); c.fill();
+      };
+      const triangle = (x1, y1, x2, y2, x3, y3, fill) => {
+        c.fillStyle = fill; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineTo(x3, y3); c.closePath(); c.fill();
+      };
+      const quad = (points, fill) => {
+        c.fillStyle = fill; c.beginPath(); c.moveTo(points[0], points[1]);
+        c.lineTo(points[2], points[3]); c.lineTo(points[4], points[5]); c.lineTo(points[6], points[7]); c.closePath(); c.fill();
+      };
+      const drawSolid = (type, x, y, s, base, faces) => {
+        const mx = x + s / 2, my = y + s / 2;
+        const [top, leftFace, rightFace, accent] = faces;
+        if (type === 16) { // sphere
+          disc(mx, my, s * 0.37, rightFace);
+          disc(mx - s * 0.08, my - s * 0.09, s * 0.31, top);
+          disc(mx - s * 0.17, my - s * 0.18, s * 0.12, accent);
+        } else if (type === 17) { // pyramid
+          triangle(mx, y + s * 0.13, x + s * 0.14, y + s * 0.8, mx, y + s * 0.61, top);
+          triangle(mx, y + s * 0.13, mx, y + s * 0.61, x + s * 0.86, y + s * 0.8, leftFace);
+          triangle(x + s * 0.14, y + s * 0.8, x + s * 0.86, y + s * 0.8, mx, y + s * 0.61, rightFace);
+        } else if (type === 18) { // cylinder
+          const topY = y + s * 0.31, bottomY = y + s * 0.73, rx = s * 0.27, ry = s * 0.11;
+          c.fillStyle = top; c.fillRect(mx - rx, topY, rx * 2, bottomY - topY);
+          c.fillStyle = leftFace; c.fillRect(mx, topY, rx, bottomY - topY);
+          c.fillStyle = rightFace; c.beginPath(); c.ellipse(mx, bottomY, rx, ry, 0, 0, Math.PI); c.lineTo(mx - rx, bottomY); c.closePath(); c.fill();
+          c.fillStyle = accent; c.beginPath(); c.ellipse(mx, topY, rx, ry, 0, 0, Math.PI * 2); c.fill();
+        } else if (type === 19) { // hollow box
+          const q = s * 0.18;
+          c.fillStyle = top; c.fillRect(x + q, y + q, s - q * 2, s - q * 2);
+          c.fillStyle = base; c.fillRect(x + q * 1.75, y + q * 1.75, s - q * 3.5, s - q * 3.5);
+          triangle(x + q, y + q, x + s - q, y + q, x + s - q * 1.75, y + q * 1.75, accent);
+          triangle(x + s - q, y + q, x + s - q, y + s - q, x + s - q * 1.75, y + s - q * 1.75, leftFace);
+          triangle(x + q, y + s - q, x + s - q, y + s - q, x + q * 1.75, y + s - q * 1.75, rightFace);
+        } else if (type === 20) { // cone
+          const baseY = y + s * 0.74, rx = s * 0.3, ry = s * 0.1;
+          triangle(mx, y + s * 0.14, mx, baseY, mx - rx, baseY, top);
+          triangle(mx, y + s * 0.14, mx + rx, baseY, mx, baseY, leftFace);
+          c.fillStyle = rightFace; c.beginPath(); c.ellipse(mx, baseY, rx, ry, 0, 0, Math.PI); c.lineTo(mx - rx, baseY); c.closePath(); c.fill();
+        } else { // arch
+          c.fillStyle = top; c.beginPath(); c.arc(mx, y + s * 0.53, s * 0.35, Math.PI, 0); c.lineTo(x + s * 0.85, y + s * 0.82); c.lineTo(x + s * 0.15, y + s * 0.82); c.closePath(); c.fill();
+          c.fillStyle = base; c.beginPath(); c.arc(mx, y + s * 0.55, s * 0.2, Math.PI, 0); c.lineTo(x + s * 0.7, y + s * 0.82); c.lineTo(x + s * 0.3, y + s * 0.82); c.closePath(); c.fill();
+          c.fillStyle = leftFace; c.fillRect(x + s * 0.15, y + s * 0.69, s * 0.15, s * 0.13);
+          c.fillStyle = rightFace; c.fillRect(x + s * 0.7, y + s * 0.69, s * 0.15, s * 0.15);
+        }
+      };
+
+      c.globalAlpha = p.opacity / 100;
+      for (let row = 0, y = startY; row < gridRows; row++, y += tile) {
+        for (let col = 0, x = startX; col < gridColumns; col++, x += tile) {
+          const ix = x + gap / 2, iy = y + gap / 2, s = tile - gap;
+          if (s <= 0) continue;
+          // Pick the ground first, then keep every structural face off that colour.
+          // This preserves the separation between a composition's field and its facets.
+          const a = color();
+          const facetPalette = [...new Set(cols.filter(value => value !== a))];
+          const fallbackFacets = ['#1a1a1a', '#f4f1ea', '#d93829', '#2a5b84', '#e8a933']
+            .filter(value => value !== a && !facetPalette.includes(value));
+          const facet = () => {
+            const pool = facetPalette.length ? facetPalette : fallbackFacets;
+            return pool.splice(Math.floor(random() * pool.length), 1)[0] || '#1a1a1a';
+          };
+          // Faces are selected without replacement: no merged cube or prism faces.
+          const b = facet(), d = facet(), ink = facet(), light = facet();
+          // Every seed chooses its own complete mix of forms, object counts, and colours.
+          const motif = family[Math.floor(random() * family.length)];
+          c.save(); c.beginPath(); c.rect(ix, iy, s, s); c.clip();
+          c.fillStyle = a; c.fillRect(ix, iy, s, s);
+          const midX = ix + s / 2, midY = iy + s / 2;
+          if (motif === 0) { // quarter-circle pair
+            disc(ix, iy + s, s, b, -Math.PI / 2, 0);
+            disc(ix + s, iy, s * 0.72, d, Math.PI / 2, Math.PI);
+          } else if (motif === 1) { // nested arches
+            disc(ix + s / 2, iy + s, s * 0.9, b, Math.PI, Math.PI * 2);
+            disc(ix + s / 2, iy + s, s * 0.58, a, Math.PI, Math.PI * 2);
+            disc(ix + s / 2, iy + s, s * 0.27, d, Math.PI, Math.PI * 2);
+          } else if (motif === 2) { // off-centre lunar form
+            disc(ix + s * 0.42, midY, s * 0.43, b);
+            disc(ix + s * 0.57, midY - s * 0.08, s * 0.29, a);
+            disc(ix + s * 0.73, midY + s * 0.23, s * 0.12, ink);
+          } else if (motif === 3) { // diagonal color field and sun
+            triangle(ix, iy, ix + s, iy, ix + s, iy + s, b);
+            triangle(ix, iy, ix, iy + s, ix + s, iy + s, d);
+            disc(midX, midY, s * 0.21, a);
+          } else if (motif === 4) { // square-and-circle balance
+            c.fillStyle = b; c.fillRect(ix, iy, s * 0.46, s * 0.46);
+            c.fillStyle = d; c.fillRect(ix + s * 0.54, iy + s * 0.54, s * 0.46, s * 0.46);
+            disc(midX, midY, s * 0.24, ink);
+          } else if (motif === 5) { // Bauhaus rays
+            triangle(ix, iy, ix + s, iy, midX, midY, b);
+            triangle(ix + s, iy, ix + s, iy + s, midX, midY, d);
+            triangle(ix + s, iy + s, ix, iy + s, midX, midY, ink);
+            triangle(ix, iy + s, ix, iy, midX, midY, a);
+            disc(midX, midY, s * 0.13, b);
+          } else if (motif === 6) { // target
+            disc(midX, midY, s * 0.39, b);
+            disc(midX, midY, s * 0.26, a);
+            disc(midX, midY, s * 0.13, ink);
+          } else if (motif === 7) { // graphic stripes and a dot
+            c.fillStyle = b; c.fillRect(ix, iy, s, s * 0.18);
+            c.fillStyle = d; c.fillRect(ix, iy + s * 0.32, s, s * 0.18);
+            c.fillStyle = ink; c.fillRect(ix, iy + s * 0.64, s, s * 0.18);
+            disc(ix + s * 0.75, iy + s * 0.5, s * 0.16, a);
+          } else if (motif === 8) { // rotated diamond colour field
+            triangle(midX, iy, ix + s, midY, midX, midY, b);
+            triangle(ix + s, midY, midX, iy + s, midX, midY, d);
+            triangle(midX, iy + s, ix, midY, midX, midY, ink);
+            triangle(ix, midY, midX, iy, midX, midY, a);
+          } else if (motif === 9) { // offset hexagonal balance
+            c.fillStyle = b; c.beginPath();
+            c.moveTo(midX, iy); c.lineTo(ix + s, iy + s * 0.25); c.lineTo(ix + s, iy + s * 0.75);
+            c.lineTo(midX, iy + s); c.lineTo(ix, iy + s * 0.75); c.lineTo(ix, iy + s * 0.25); c.closePath(); c.fill();
+            triangle(midX, iy, midX, midY, ix + s, iy + s * 0.25, d);
+            triangle(ix, iy + s * 0.75, midX, midY, midX, iy + s, ink);
+          } else if (motif === 10) { // four precise blocks
+            const q = s * 0.28;
+            c.fillStyle = b; c.fillRect(ix + s * 0.08, iy + s * 0.08, q, q);
+            c.fillStyle = d; c.fillRect(ix + s * 0.64, iy + s * 0.08, q, q);
+            c.fillStyle = ink; c.fillRect(ix + s * 0.08, iy + s * 0.64, q, q);
+            c.fillStyle = a; c.fillRect(ix + s * 0.64, iy + s * 0.64, q, q);
+          } else if (motif === 11) { // framed negative space
+            c.fillStyle = b; c.fillRect(ix, iy, s * 0.27, s);
+            c.fillStyle = d; c.fillRect(ix + s * 0.73, iy, s * 0.27, s);
+            c.fillStyle = ink; c.fillRect(ix + s * 0.27, iy, s * 0.46, s * 0.2);
+            c.fillStyle = ink; c.fillRect(ix + s * 0.27, iy + s * 0.8, s * 0.46, s * 0.2);
+          } else if (motif === 12) { // four-way pinwheel
+            triangle(midX, midY, ix, iy, ix + s, iy, b);
+            triangle(midX, midY, ix + s, iy, ix + s, iy + s, d);
+            triangle(midX, midY, ix + s, iy + s, ix, iy + s, ink);
+            triangle(midX, midY, ix, iy + s, ix, iy, a);
+            disc(midX, midY, s * 0.1, b);
+          } else if (motif === 13) { // isometric cube
+            // Split the roof along its median: it reads as two pyramid slopes,
+            // not one large, uniformly coloured diamond.
+            triangle(ix + s * 0.14, midY, midX, iy + s * 0.62, midX, iy + s * 0.88, d);
+            triangle(midX, iy + s * 0.62, ix + s * 0.86, midY, midX, iy + s * 0.88, ink);
+            triangle(midX, iy + s * 0.12, ix + s * 0.86, midY, midX, iy + s * 0.62, b);
+            triangle(midX, iy + s * 0.12, midX, iy + s * 0.62, ix + s * 0.14, midY, light);
+          } else if (motif === 14) { // low rectangular prism
+            const left = ix + s * 0.16, right = ix + s * 0.84, topY = iy + s * 0.33, ridgeY = iy + s * 0.48, bottomY = iy + s * 0.76;
+            quad([left, topY, midX, iy + s * 0.16, right, topY, midX, ridgeY], b);
+            quad([left, topY, midX, ridgeY, midX, bottomY, left, iy + s * 0.61], d);
+            quad([midX, ridgeY, right, topY, right, iy + s * 0.61, midX, bottomY], ink);
+          } else if (motif === 15) { // stepped blocks, with depth defined by three flat faces
+            const block = (cx, cy, size, topColor, leftColor, rightColor) => {
+              quad([cx, cy, cx + size, cy + size * 0.32, cx, cy + size * 0.64, cx - size, cy + size * 0.32], topColor);
+              quad([cx - size, cy + size * 0.32, cx, cy + size * 0.64, cx, cy + size * 1.26, cx - size, cy + size * 0.94], leftColor);
+              quad([cx, cy + size * 0.64, cx + size, cy + size * 0.32, cx + size, cy + size * 0.94, cx, cy + size * 1.26], rightColor);
+            };
+            block(midX, iy + s * 0.14, s * 0.22, b, d, ink);
+            block(midX, iy + s * 0.5, s * 0.14, light, b, d);
+          } else if (motif === 22) { // concentric rings / bullseye
+            c.lineWidth = Math.max(2, s * 0.045);
+            [0.39, 0.28, 0.17, 0.07].forEach((radius, index) => {
+              c.strokeStyle = [b, d, ink, light][index]; c.beginPath(); c.arc(midX, midY, s * radius, 0, Math.PI * 2); c.stroke();
+            });
+          } else if (motif === 23) { // quarter-circle contour lines
+            c.lineWidth = Math.max(2, s * 0.035);
+            [0.2, 0.38, 0.56, 0.74].forEach((radius, index) => {
+              c.strokeStyle = [b, d, ink, light][index]; c.beginPath(); c.arc(ix, iy + s, s * radius, -Math.PI / 2, 0); c.stroke();
+            });
+          } else if (motif === 24) { // segmented Pac-Man circle
+            disc(midX, midY, s * 0.37, b, Math.PI * 0.22, Math.PI * 1.78);
+            triangle(midX, midY, ix + s, iy + s * 0.3, ix + s, iy + s * 0.7, a);
+            disc(ix + s * 0.78, midY, s * 0.07, ink);
+            disc(ix + s * 0.28, midY, s * 0.16, d);
+          } else if (motif === 25) { // 4 x 4 polka-dot array
+            for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) {
+              disc(ix + s * (0.2 + gx * 0.2), iy + s * (0.2 + gy * 0.2), s * 0.065, [b, d, ink, light][(gx + gy) % 4]);
+            }
+          } else if (motif === 26) { // checkerboard of small squares
+            const q = s / 5;
+            for (let gy = 0; gy < 4; gy++) for (let gx = 0; gx < 4; gx++) {
+              c.fillStyle = [b, d, ink, light][(gx + gy * 2) % 4]; c.fillRect(ix + q * (0.5 + gx), iy + q * (0.5 + gy), q * 0.78, q * 0.78);
+            }
+          } else if (motif === 27) { // hollow diamond window
+            quad([midX, iy + s * 0.1, ix + s * 0.9, midY, midX, iy + s * 0.9, ix + s * 0.1, midY], b);
+            quad([midX, iy + s * 0.31, ix + s * 0.69, midY, midX, iy + s * 0.69, ix + s * 0.31, midY], a);
+            triangle(midX, iy + s * 0.1, ix + s * 0.9, midY, midX, iy + s * 0.31, light);
+            triangle(ix + s * 0.9, midY, midX, iy + s * 0.9, ix + s * 0.69, midY, d);
+            triangle(midX, iy + s * 0.9, ix + s * 0.1, midY, midX, iy + s * 0.69, ink);
+          } else if (motif === 28) { // four curved corner brackets / astroid-like void
+            c.fillStyle = b; c.fillRect(ix, iy, s, s);
+            c.fillStyle = a;
+            [[ix, iy], [ix + s, iy], [ix, iy + s], [ix + s, iy + s]].forEach(([cx, cy]) => {
+              c.beginPath(); c.arc(cx, cy, s * 0.34, 0, Math.PI * 2); c.fill();
+            });
+            c.fillStyle = light; c.fillRect(midX - s * 0.1, iy, s * 0.2, s);
+            c.fillStyle = d; c.fillRect(ix, midY - s * 0.1, s, s * 0.2);
+          } else if (motif === 29) { // stacked chevrons
+            for (let step = 0; step < 3; step++) {
+              const y = iy + s * (0.16 + step * 0.24), size = s * 0.34;
+              triangle(midX, y, midX - size, y + size * 0.5, midX, y + size, [b, d, ink][step]);
+              triangle(midX, y, midX + size, y + size * 0.5, midX, y + size, [b, d, ink][step]);
+            }
+          } else if (motif === 30) { // dense horizontal and diagonal line field
+            c.lineWidth = Math.max(2, s * 0.045);
+            for (let line = 0; line < 6; line++) {
+              c.strokeStyle = [b, d, ink, light][line % 4]; c.beginPath();
+              c.moveTo(ix + s * 0.12, iy + s * (0.13 + line * 0.14)); c.lineTo(ix + s * 0.88, iy + s * (0.13 + line * 0.14)); c.stroke();
+            }
+          } else if (motif === 31) { // four tangent circles
+            [[0.35, 0.35], [0.65, 0.35], [0.35, 0.65], [0.65, 0.65]].forEach(([px, py], index) => disc(ix + s * px, iy + s * py, s * 0.16, [b, d, ink, light][index]));
+          } else { // multiple standard solids, arranged like a balanced dice face
+            const count = 1 + Math.floor(random() * 4);
+            const positions = count === 1 ? [[0.5, 0.5]]
+              : count === 2 ? [[0.31, 0.5], [0.69, 0.5]]
+              : count === 3 ? [[0.3, 0.31], [0.7, 0.31], [0.5, 0.7]]
+              : [[0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7]];
+            const objectScale = count === 1 ? 1 : count === 2 ? 0.58 : count === 3 ? 0.5 : 0.42;
+            const colors = [b, d, ink, light];
+            positions.forEach(([px, py], index) => {
+              const os = s * objectScale;
+              const rotatedFaces = colors.map((_, offset) => colors[(offset + index) % colors.length]);
+              const form = 16 + Math.floor(random() * 6);
+              drawSolid(form, ix + s * px - os / 2, iy + s * py - os / 2, os, a, rotatedFaces);
+            });
+          }
+          c.restore();
+          if (p.outlineWidth > 0) { c.strokeStyle = bgColor; c.lineWidth = p.outlineWidth; c.strokeRect(ix, iy, s, s); }
+        }
       }
       c.globalAlpha = 1;
     }
@@ -2185,7 +2427,7 @@ circMaze: {
 
       c.lineWidth = p.th;
       c.lineCap = 'round';
-      c.lineJoin = 'miter';
+      c.lineJoin = 'round';
 
       const openThreshold = p.gp / 100;
       const wallBatches = Array.from({ length: cols.length }, () => []);
