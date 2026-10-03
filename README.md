@@ -1,4 +1,4 @@
-# RRON Generative Studio
+# Generative Studio by RRON
 
 A static generative-art gallery and studio. Open `index.html` in a modern
 browser, or serve this directory with any static web server. No build step or

@@ -1,10 +1,10 @@
 const GROUP_INTRODUCTIONS = {
-  'Color & Composition': 'Build an image through color relationships, proportion, and graphic balance.',
-  'Patterns & Effects': 'Create repeatable surfaces, modular systems, and expressive digital texture.',
-  'Geometry & Symmetry': 'Explore precise structures shaped by repetition, networks, and radial order.',
-  'Organic & Flow': 'Work with natural movement, growth, contours, and fluid directional fields.',
-  'Fields & Systems': 'See mathematical forces, oscillation, particles, and emergence become visible.',
-  '3D & Architecture': 'Construct spatial forms, terrain, buildings, and dimensional environments.',
+  'Color & Composition': 'Create with gradients, color, shapes, stripes, and geometric layouts.',
+  'Patterns & Effects': 'Generate repeating patterns, grids, tiles, textures, and digital effects.',
+  'Geometry & Symmetry': 'Explore circles, polygons, curves, symmetry, and mathematical shapes.',
+  'Organic & Flow': 'Create flowing lines, natural forms, contours, waves, and organic patterns.',
+  'Fields & Systems': 'Experiment with waves, particles, optical effects, and mathematical patterns.',
+  '3D & Architecture': 'Build 3D forms, landscapes, towers, cities, and architectural scenes.',
 };
 
 const gallery = document.getElementById('engineGallery');
@@ -20,7 +20,7 @@ ENGINE_CATALOG.forEach(([group, engines], groupIndex) => {
   heading.className = 'group-heading';
   heading.innerHTML = `
     <div>
-      <span class="group-number">${String(groupIndex + 1).padStart(2, '0')}</span>
+      <span class="group-number">${String(groupIndex + 1).padStart(2, '0')} —</span>
       <h2 id="group-${groupIndex}">${group}</h2>
     </div>
     <p>${GROUP_INTRODUCTIONS[group]}</p>
@@ -64,7 +64,8 @@ ENGINE_CATALOG.forEach(([group, engines], groupIndex) => {
   gallery.appendChild(section);
 });
 
-document.getElementById('surpriseEngine').addEventListener('click', () => {
+document.getElementById('surpriseEngine').addEventListener('click', event => {
+  event.preventDefault();
   const id = allEngines[Math.floor(Math.random() * allEngines.length)];
   window.location.href = `studio.html?engine=${encodeURIComponent(id)}`;
 });
