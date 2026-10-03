@@ -107,6 +107,9 @@ ENGINE_CATALOG.forEach(([group, entries]) => {
   uiEngineSelect.appendChild(og);
 });
 
+const requestedEngine = new URLSearchParams(window.location.search).get('engine');
+if (requestedEngine && ENGINES[requestedEngine]) uiEngineSelect.value = requestedEngine;
+
 function renderPaletteUI() {
   paletteContainer.querySelectorAll('.swatch-wrap:not(.bg-swatch)').forEach(el => el.remove());
   bgSwatchWrap.style.backgroundColor = bgColor;
@@ -376,7 +379,13 @@ function render() {
   renderPipeline(ctx, canvas.width, canvas.height, 1);
 }
 
-uiEngineSelect.addEventListener('change', () => { buildDynamicUI(); scheduleRender(); });
+uiEngineSelect.addEventListener('change', () => {
+  const url = new URL(window.location.href);
+  url.searchParams.set('engine', uiEngineSelect.value);
+  window.history.replaceState(null, '', url);
+  buildDynamicUI();
+  scheduleRender();
+});
 
 presetPalette.addEventListener('change', (e) => {
   if (PALETTES[e.target.value]) {

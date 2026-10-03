@@ -32,6 +32,16 @@ test('engine catalog renames and groups every engine exactly once', () => {
   ]);
 });
 
+test('every catalog engine has homepage metadata', () => {
+  const context = vm.createContext({});
+  vm.runInContext(`${read('js/engines.js')}\n${read('js/catalog.js')}`, context);
+  const metadata = vm.runInContext(`ENGINE_CATALOG.flatMap(([, entries]) => entries.map(([id]) => ({
+    id, description: ENGINE_DESCRIPTIONS[id]
+  })))`, context);
+  assert.equal(metadata.length, 51);
+  assert.ok(metadata.every(({ description }) => typeof description === 'string' && description.length >= 30));
+});
+
 function loadCore(gl) {
   const context = vm.createContext({
     document: { getElementById: () => ({ getContext: () => ({}) }) },

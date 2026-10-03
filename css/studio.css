@@ -59,6 +59,22 @@ body {
   margin-top: 4px;
 }
 
+.brand-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.home-link {
+  color: var(--fg-muted);
+  font-size: 9px;
+  padding: 5px 2px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.home-link:hover { color: var(--fg); }
+
 .controls-scroll {
   flex: 1;
   overflow-y: auto;
@@ -356,6 +372,8 @@ canvas {
   .brand {
     padding: 10px 16px;
   }
+  .brand-actions { gap: 6px; }
+  .home-link { font-size: 8px; }
   .settings-scroll-handle {
     align-items: center;
     background: #fafaf9;

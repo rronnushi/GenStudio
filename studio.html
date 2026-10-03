@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RRON — Gen Studio Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <link rel="stylesheet" href="css/studio.css">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div>
+        <div class="brand-title">RRON</div>
+        <div class="brand-sub">Generative Studio</div>
+      </div>
+      <div class="brand-actions">
+        <a class="home-link" href="index.html">All engines</a>
+        <button id="btnRandomize" style="padding: 5px 10px; font-size: 9px; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;">🎲 RANDOMIZE</button>
+      </div>
+    </div>
+
+    <button class="settings-scroll-handle" id="settingsScrollHandle" type="button" aria-label="Swipe here to scroll settings">
+      <span aria-hidden="true">↕</span> Swipe here to scroll settings
+    </button>
+
+    <div class="controls-scroll">
+      <div class="control-group">
+        <div class="section-title"><span>Visual Engine</span><button id="btnResetEngine" title="Restore this engine's default settings" style="padding:2px 8px; font-size:9px;">Reset engine</button></div>
+        <select id="engineSelect"></select>
+      </div>
+
+      <div id="dynamicControls" style="display:flex; flex-direction:column; gap:14px; margin-top: 2px; padding-left: 10px; border-left: 2px solid var(--border);"></div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title">
+          <span>Random Seed</span>
+          <button id="btnNewSeed" style="padding:2px 8px; font-size:9px;">New Variation</button>
+        </div>
+        <div class="label-row"><span>Variation Code</span><span class="val" id="valSeed">1337</span></div>
+        <input type="range" id="paramSeed" min="1" max="99999" value="1337">
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title">
+          <span>Palette & Color</span>
+          <div style="display:flex; gap:4px;">
+            <button id="btnReorderColors" title="Reorder active colors" style="padding:2px 6px; font-size:9px;">Reorder</button>
+            <button id="btnRandColors" title="Generate new random palette" style="padding:2px 6px; font-size:9px;">Random</button>
+            <select id="presetPalette" style="padding:2px 4px; font-size:9px; max-width: 105px;">
+              <option value="fractalBlue">Fractal Blue</option>
+              <option value="autumn">Autumn</option>
+              <option value="sloterdijk">Sloterdijk</option>
+              <option value="centraal">Centraal Station</option>
+              <option value="amsterdam">Amsterdam</option>
+              <option value="pastel">Pastel</option>
+              <option value="cyber">Cyberpunk</option>
+              <option value="acid">Acid</option>
+              <option value="ultramarine">Ultramarine</option>
+              <option value="monochrome">Monochrome</option>
+              <option value="sunset">Sunset</option>
+              <option value="neon">Neon</option>
+              <option value="bauhaus">Bauhaus</option>
+              <option value="vintage">Vintage</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="label-row" style="margin-bottom:-2px;">
+          <span>Color Palette (Up to 20)</span>
+          <span id="paletteCount" style="color:var(--fg-muted); font-size:9px;">6 / 20</span>
+        </div>
+        <div class="palette-container" id="paletteContainer">
+          <button class="btn-add-color" id="btnAddColor" title="Add new color">+</button>
+        </div>
+
+        <div class="label-row" style="margin-top:10px; margin-bottom:-2px;"><span>Canvas Background</span></div>
+        <div class="swatch-wrap bg-swatch" id="bgSwatchWrap">
+          <input type="color" id="bgColorPicker" title="Background Color" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title">
+          <span>Composition & Framing</span>
+          <button id="btnResetGlobals" style="padding:2px 8px; font-size:9px;">Reset</button>
+        </div>
+
+        <div class="label-row"><span>Mirror Reflection</span></div>
+        <select id="compSymmetry">
+          <option value="None">None (Original Layout)</option>
+          <option value="Horizontal">Horizontal Mirror (Left / Right)</option>
+          <option value="Vertical">Vertical Mirror (Top / Bottom)</option>
+          <option value="Quad">4-Corner Kaleidoscope Mirror</option>
+        </select>
+
+        <div class="label-row" style="margin-top: 8px;"><span>Outer Padding</span><span class="val" id="valMargin">0px</span></div>
+        <input type="range" id="compMargin" min="0" max="300" value="0">
+
+        <div class="label-row"><span>Zoom</span><span class="val" id="valZoom">100%</span></div>
+        <input type="range" id="compZoom" min="10" max="300" value="100">
+
+        <div class="label-row"><span>Rotate</span><span class="val" id="valRotation">0°</span></div>
+        <input type="range" id="compRotation" min="-180" max="180" value="0">
+
+        <div class="label-row"><span>Shift Left/Right</span><span class="val" id="valOffsetX">0%</span></div>
+        <input type="range" id="compOffsetX" min="-200" max="200" value="0">
+
+        <div class="label-row"><span>Shift Up/Down</span><span class="val" id="valOffsetY">0%</span></div>
+        <input type="range" id="compOffsetY" min="-200" max="200" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Film Texture Grain</span><span class="val" id="valGrain">15%</span></div>
+        <input type="range" id="compGrain" min="0" max="100" value="15">
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="control-group">
+        <div class="section-title"><span>Finish &amp; Effects</span></div>
+
+        <div class="label-row"><span>Halftone Dither</span><span class="val" id="valHalftone">0%</span></div>
+        <input type="range" id="fxHalftone" min="0" max="100" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Color Levels</span></div>
+        <div class="label-row"><span>Full → 2 colors</span><span class="val" id="valColorLevels">Full</span></div>
+        <input type="range" id="fxColorLevels" min="0" max="100" value="0">
+
+        <div class="label-row" style="margin-top: 6px;"><span>Contrast</span><span class="val" id="valContrast">0</span></div>
+        <input type="range" id="fxContrast" min="-100" max="100" value="0">
+
+        <div class="label-row"><span>Vignette</span><span class="val" id="valVignette">0%</span></div>
+        <input type="range" id="fxVignette" min="0" max="100" value="0">
+
+      </div>
+
+      <div class="btn-row" style="margin-top: auto; padding-top: 8px;">
+        <button id="btnExport" class="btn-primary" style="grid-column: span 2; padding: 10px;">Download PNG</button>
+        <button id="btnExport2x" style="grid-column: span 2; padding: 7px; font-weight: 700; border-color: var(--border);">Download Ultra-HD PNG</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="viewport">
+    <div class="canvas-wrapper"><canvas id="artCanvas"></canvas></div>
+    <div class="aspect-bar">
+      <button class="aspect-btn active" data-w="1080" data-h="1920">9:16 Story</button>
+      <button class="aspect-btn" data-w="1080" data-h="1350">4:5 IG Post</button>
+      <button class="aspect-btn" data-w="1400" data-h="1400">1:1 Square</button>
+      <button class="aspect-btn" data-w="1600" data-h="1200">4:3 Print</button>
+      <button class="aspect-btn" data-w="1920" data-h="1080">16:9 Screen</button>
+    </div>
+  </main>
+
+  <script src="js/core.js"></script>
+  <script src="js/engines.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>

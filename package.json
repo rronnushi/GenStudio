@@ -1,0 +1,11 @@
+{
+  "name": "rron-gen-studio",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/regression.test.cjs",
+    "thumbnails": "node scripts/generate-thumbnails.cjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
